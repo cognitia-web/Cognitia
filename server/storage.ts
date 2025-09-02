@@ -1,29 +1,20 @@
-import {
-  users,
-  tasks,
-  decks,
-  flashcards,
-  qaHistory,
-  revisionTopics,
-  pointsEvents,
-  dailyQuotes,
-  type User,
-  type UpsertUser,
-  type Task,
-  type InsertTask,
-  type Deck,
-  type InsertDeck,
-  type Flashcard,
-  type InsertFlashcard,
-  type QaHistory,
-  type InsertQa,
-  type RevisionTopic,
-  type InsertRevisionTopic,
-  type PointsEvent,
-  type DailyQuote,
+import { supabase, supabaseAdmin } from "./db";
+import type {
+  User,
+  UpsertUser,
+  Task,
+  InsertTask,
+  Deck,
+  InsertDeck,
+  Flashcard,
+  InsertFlashcard,
+  QaHistory,
+  InsertQa,
+  RevisionTopic,
+  InsertRevisionTopic,
+  PointsEvent,
+  DailyQuote,
 } from "@shared/schema";
-import { db } from "./db";
-import { eq, and, desc, asc, gte, lte, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -68,275 +59,510 @@ export interface IStorage {
   
   // Points operations
   getPointsEvents(userId: string, limit?: number): Promise<PointsEvent[]>;
-  createPointsEvent(event: Omit<PointsEvent, 'id' | 'createdAt'>): Promise<PointsEvent>;
+  createPointsEvent(event: Omit<PointsEvent, 'id' | 'created_at'>): Promise<PointsEvent>;
   
   // Daily quote operations
   getDailyQuote(dayKey: string): Promise<DailyQuote | undefined>;
-  createDailyQuote(quote: Omit<DailyQuote, 'id' | 'createdAt'>): Promise<DailyQuote>;
+  createDailyQuote(quote: Omit<DailyQuote, 'id' | 'created_at'>): Promise<DailyQuote>;
 }
 
-export class DatabaseStorage implements IStorage {
+export class SupabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching user:', error);
+      return undefined;
+    }
+    
+    return data;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return user;
+    const { data, error } = await supabase
+      .from('users')
+      .upsert(userData, { onConflict: 'id' })
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Failed to upsert user: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async updateUserPoints(userId: string, points: number): Promise<void> {
-    await db
-      .update(users)
-      .set({ points, updatedAt: new Date() })
-      .where(eq(users.id, userId));
+    const { error } = await supabase
+      .from('users')
+      .update({ points, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+    
+    if (error) {
+      throw new Error(`Failed to update user points: ${error.message}`);
+    }
   }
 
   async updateUserStreak(userId: string, streak: number): Promise<void> {
-    await db
-      .update(users)
-      .set({ streak, lastActiveDate: new Date().toISOString().split('T')[0], updatedAt: new Date() })
-      .where(eq(users.id, userId));
+    const { error } = await supabase
+      .from('users')
+      .update({ 
+        streak, 
+        last_active_date: new Date().toISOString().split('T')[0],
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', userId);
+    
+    if (error) {
+      throw new Error(`Failed to update user streak: ${error.message}`);
+    }
   }
 
   async updateUserLevel(userId: string, level: string): Promise<void> {
-    await db
-      .update(users)
-      .set({ level, updatedAt: new Date() })
-      .where(eq(users.id, userId));
+    const { error } = await supabase
+      .from('users')
+      .update({ level, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+    
+    if (error) {
+      throw new Error(`Failed to update user level: ${error.message}`);
+    }
   }
 
   // Task operations
   async getTasks(userId: string, date?: string): Promise<Task[]> {
+    let query = supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', userId);
+    
     if (date) {
-      return await db
-        .select()
-        .from(tasks)
-        .where(and(eq(tasks.userId, userId), eq(tasks.date, date)))
-        .orderBy(desc(tasks.createdAt));
+      query = query.eq('date', date);
     }
     
-    return await db
-      .select()
-      .from(tasks)
-      .where(eq(tasks.userId, userId))
-      .orderBy(desc(tasks.createdAt));
+    const { data, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) {
+      throw new Error(`Failed to fetch tasks: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
   async getTasksForDate(userId: string, date: string): Promise<Task[]> {
-    return await db
-      .select()
-      .from(tasks)
-      .where(and(eq(tasks.userId, userId), eq(tasks.date, date)))
-      .orderBy(asc(tasks.createdAt));
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', date)
+      .order('created_at', { ascending: true });
+    
+    if (error) {
+      throw new Error(`Failed to fetch tasks for date: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
   async createTask(task: InsertTask & { userId: string }): Promise<Task> {
-    const [newTask] = await db.insert(tasks).values(task).returning();
-    return newTask;
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert({
+        user_id: task.userId,
+        title: task.title,
+        subject: task.subject,
+        intensity: task.intensity,
+        estimate_min: task.estimateMin,
+        date: task.date,
+        status: task.status || 'pending',
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Failed to create task: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async updateTask(id: string, updates: Partial<Task>): Promise<Task | undefined> {
-    const [updatedTask] = await db
-      .update(tasks)
-      .set({ ...updates, updatedAt: new Date() } as any)
-      .where(eq(tasks.id, id))
-      .returning();
-    return updatedTask;
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating task:', error);
+      return undefined;
+    }
+    
+    return data;
   }
 
   async deleteTask(id: string): Promise<boolean> {
-    const result = await db.delete(tasks).where(eq(tasks.id, id));
-    return (result.rowCount || 0) > 0;
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+    
+    return !error;
   }
 
   // Deck operations
   async getDecks(userId: string): Promise<Deck[]> {
-    return await db
-      .select()
-      .from(decks)
-      .where(eq(decks.userId, userId))
-      .orderBy(desc(decks.createdAt));
+    const { data, error } = await supabase
+      .from('decks')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      throw new Error(`Failed to fetch decks: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
   async getDeck(id: string): Promise<Deck | undefined> {
-    const [deck] = await db.select().from(decks).where(eq(decks.id, id));
-    return deck;
+    const { data, error } = await supabase
+      .from('decks')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching deck:', error);
+      return undefined;
+    }
+    
+    return data;
   }
 
   async createDeck(deck: InsertDeck & { userId: string }): Promise<Deck> {
-    const [newDeck] = await db.insert(decks).values(deck).returning();
-    return newDeck;
+    const { data, error } = await supabase
+      .from('decks')
+      .insert({
+        user_id: deck.userId,
+        title: deck.title,
+        source: deck.source,
+        source_content: deck.sourceContent,
+        stats: deck.stats || {},
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Failed to create deck: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async updateDeck(id: string, updates: Partial<Deck>): Promise<Deck | undefined> {
-    const [updatedDeck] = await db
-      .update(decks)
-      .set(updates as any)
-      .where(eq(decks.id, id))
-      .returning();
-    return updatedDeck;
+    const { data, error } = await supabase
+      .from('decks')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating deck:', error);
+      return undefined;
+    }
+    
+    return data;
   }
 
   async deleteDeck(id: string): Promise<boolean> {
-    const result = await db.delete(decks).where(eq(decks.id, id));
-    return (result.rowCount || 0) > 0;
+    const { error } = await supabase
+      .from('decks')
+      .delete()
+      .eq('id', id);
+    
+    return !error;
   }
 
   // Flashcard operations
   async getFlashcards(deckId: string): Promise<Flashcard[]> {
-    return await db
-      .select()
-      .from(flashcards)
-      .where(eq(flashcards.deckId, deckId))
-      .orderBy(asc(flashcards.createdAt));
+    const { data, error } = await supabase
+      .from('flashcards')
+      .select('*')
+      .eq('deck_id', deckId)
+      .order('created_at', { ascending: true });
+    
+    if (error) {
+      throw new Error(`Failed to fetch flashcards: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
   async getFlashcardsForReview(userId: string, date: string): Promise<Flashcard[]> {
-    return await db
-      .select({
-        id: flashcards.id,
-        deckId: flashcards.deckId,
-        question: flashcards.question,
-        answer: flashcards.answer,
-        difficulty: flashcards.difficulty,
-        nextReview: flashcards.nextReview,
-        intervalDays: flashcards.intervalDays,
-        ease: flashcards.ease,
-        reviewCount: flashcards.reviewCount,
-        correctCount: flashcards.correctCount,
-        createdAt: flashcards.createdAt,
-      })
-      .from(flashcards)
-      .innerJoin(decks, eq(flashcards.deckId, decks.id))
-      .where(
-        and(
-          eq(decks.userId, userId),
-          lte(flashcards.nextReview, date)
-        )
-      );
+    const { data, error } = await supabase
+      .from('flashcards')
+      .select(`
+        *,
+        decks!inner(user_id)
+      `)
+      .eq('decks.user_id', userId)
+      .lte('next_review', date);
+    
+    if (error) {
+      throw new Error(`Failed to fetch flashcards for review: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
   async createFlashcard(flashcard: InsertFlashcard & { deckId: string }): Promise<Flashcard> {
-    const [newFlashcard] = await db.insert(flashcards).values(flashcard).returning();
-    return newFlashcard;
+    const { data, error } = await supabase
+      .from('flashcards')
+      .insert({
+        deck_id: flashcard.deckId,
+        question: flashcard.question,
+        answer: flashcard.answer,
+        difficulty: flashcard.difficulty || 'medium',
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Failed to create flashcard: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async updateFlashcard(id: string, updates: Partial<Flashcard>): Promise<Flashcard | undefined> {
-    const [updatedFlashcard] = await db
-      .update(flashcards)
-      .set(updates as any)
-      .where(eq(flashcards.id, id))
-      .returning();
-    return updatedFlashcard;
+    const { data, error } = await supabase
+      .from('flashcards')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating flashcard:', error);
+      return undefined;
+    }
+    
+    return data;
   }
 
   async deleteFlashcard(id: string): Promise<boolean> {
-    const result = await db.delete(flashcards).where(eq(flashcards.id, id));
-    return (result.rowCount || 0) > 0;
+    const { error } = await supabase
+      .from('flashcards')
+      .delete()
+      .eq('id', id);
+    
+    return !error;
   }
 
   // Q&A operations
   async getQaHistory(userId: string, limit = 50): Promise<QaHistory[]> {
-    return await db
-      .select()
-      .from(qaHistory)
-      .where(eq(qaHistory.userId, userId))
-      .orderBy(desc(qaHistory.savedAt))
+    const { data, error } = await supabase
+      .from('qa_history')
+      .select('*')
+      .eq('user_id', userId)
+      .order('saved_at', { ascending: false })
       .limit(limit);
+    
+    if (error) {
+      throw new Error(`Failed to fetch Q&A history: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
   async createQaRecord(qa: InsertQa & { userId: string }): Promise<QaHistory> {
-    const [newQa] = await db.insert(qaHistory).values(qa).returning();
-    return newQa;
+    const { data, error } = await supabase
+      .from('qa_history')
+      .insert({
+        user_id: qa.userId,
+        prompt: qa.prompt,
+        mode: qa.mode,
+        model: qa.model,
+        answer: qa.answer,
+        outline: qa.outline,
+        sources: qa.sources,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Failed to create Q&A record: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async deleteQaRecord(id: string): Promise<boolean> {
-    const result = await db.delete(qaHistory).where(eq(qaHistory.id, id));
-    return (result.rowCount || 0) > 0;
+    const { error } = await supabase
+      .from('qa_history')
+      .delete()
+      .eq('id', id);
+    
+    return !error;
   }
 
   // Revision operations
   async getRevisionTopics(userId: string): Promise<RevisionTopic[]> {
-    return await db
-      .select()
-      .from(revisionTopics)
-      .where(eq(revisionTopics.userId, userId))
-      .orderBy(asc(revisionTopics.nextDate));
+    const { data, error } = await supabase
+      .from('revision_topics')
+      .select('*')
+      .eq('user_id', userId)
+      .order('next_date', { ascending: true });
+    
+    if (error) {
+      throw new Error(`Failed to fetch revision topics: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
   async getRevisionTopicsDue(userId: string, date: string): Promise<RevisionTopic[]> {
-    return await db
-      .select()
-      .from(revisionTopics)
-      .where(
-        and(
-          eq(revisionTopics.userId, userId),
-          lte(revisionTopics.nextDate, date)
-        )
-      )
-      .orderBy(asc(revisionTopics.nextDate));
+    const { data, error } = await supabase
+      .from('revision_topics')
+      .select('*')
+      .eq('user_id', userId)
+      .lte('next_date', date)
+      .order('next_date', { ascending: true });
+    
+    if (error) {
+      throw new Error(`Failed to fetch due revision topics: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
   async createRevisionTopic(topic: InsertRevisionTopic & { userId: string; nextDate: string }): Promise<RevisionTopic> {
-    const [newTopic] = await db.insert(revisionTopics).values(topic).returning();
-    return newTopic;
+    const { data, error } = await supabase
+      .from('revision_topics')
+      .insert({
+        user_id: topic.userId,
+        title: topic.title,
+        subject: topic.subject,
+        next_date: topic.nextDate,
+        interval_days: 1,
+        ease: 2.5,
+        review_history: [],
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Failed to create revision topic: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async updateRevisionTopic(id: string, updates: Partial<RevisionTopic>): Promise<RevisionTopic | undefined> {
-    const [updatedTopic] = await db
-      .update(revisionTopics)
-      .set(updates as any)
-      .where(eq(revisionTopics.id, id))
-      .returning();
-    return updatedTopic;
+    const { data, error } = await supabase
+      .from('revision_topics')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating revision topic:', error);
+      return undefined;
+    }
+    
+    return data;
   }
 
   async deleteRevisionTopic(id: string): Promise<boolean> {
-    const result = await db.delete(revisionTopics).where(eq(revisionTopics.id, id));
-    return (result.rowCount || 0) > 0;
+    const { error } = await supabase
+      .from('revision_topics')
+      .delete()
+      .eq('id', id);
+    
+    return !error;
   }
 
   // Points operations
   async getPointsEvents(userId: string, limit = 100): Promise<PointsEvent[]> {
-    return await db
-      .select()
-      .from(pointsEvents)
-      .where(eq(pointsEvents.userId, userId))
-      .orderBy(desc(pointsEvents.createdAt))
+    const { data, error } = await supabase
+      .from('points_events')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
       .limit(limit);
+    
+    if (error) {
+      throw new Error(`Failed to fetch points events: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
-  async createPointsEvent(event: Omit<PointsEvent, 'id' | 'createdAt'>): Promise<PointsEvent> {
-    const [newEvent] = await db.insert(pointsEvents).values(event).returning();
-    return newEvent;
+  async createPointsEvent(event: Omit<PointsEvent, 'id' | 'created_at'>): Promise<PointsEvent> {
+    const { data, error } = await supabase
+      .from('points_events')
+      .insert({
+        user_id: event.userId,
+        type: event.type,
+        amount: event.amount,
+        meta: event.meta || {},
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Failed to create points event: ${error.message}`);
+    }
+    
+    return data;
   }
 
   // Daily quote operations
   async getDailyQuote(dayKey: string): Promise<DailyQuote | undefined> {
-    const [quote] = await db
-      .select()
-      .from(dailyQuotes)
-      .where(eq(dailyQuotes.dayKey, dayKey));
-    return quote;
+    const { data, error } = await supabase
+      .from('daily_quotes')
+      .select('*')
+      .eq('day_key', dayKey)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching daily quote:', error);
+      return undefined;
+    }
+    
+    return data;
   }
 
-  async createDailyQuote(quote: Omit<DailyQuote, 'id' | 'createdAt'>): Promise<DailyQuote> {
-    const [newQuote] = await db.insert(dailyQuotes).values(quote).returning();
-    return newQuote;
+  async createDailyQuote(quote: Omit<DailyQuote, 'id' | 'created_at'>): Promise<DailyQuote> {
+    const { data, error } = await supabase
+      .from('daily_quotes')
+      .insert({
+        text: quote.text,
+        author: quote.author,
+        source_url: quote.sourceUrl,
+        day_key: quote.dayKey,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Failed to create daily quote: ${error.message}`);
+    }
+    
+    return data;
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new SupabaseStorage();
