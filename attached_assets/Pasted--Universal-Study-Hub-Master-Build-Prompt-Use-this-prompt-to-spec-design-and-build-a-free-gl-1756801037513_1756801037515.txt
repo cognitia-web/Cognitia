@@ -1,0 +1,166 @@
+# Universal Study Hub — Master Build Prompt
+
+Use this prompt to spec, design, and build a free, globally accessible study platform for students. Keep the tone future‑refined, simple, and minimal with subtle motion.
+
+## Product North Star
+
+A free, global study hub that helps any student learn faster with AI flashcards, long‑answer Q\&A, spaced‑repetition revision, task‑based timetables, and a consistency reward ladder from **Bronze → Energon**.
+
+## Key Outcomes
+
+* Students actually study daily (gated progress until they add today’s task).
+* Measurable recall improvement via smart revision intervals.
+* Delightful, low‑friction UX that runs on free hosting tiers.
+
+## Primary Personas
+
+* **School Student (13–18)**: needs structure, fast answers, bite‑size revision.
+* **College Student (18–24)**: needs long‑form Q\&A, custom schedules, depth.
+
+## Core Feature Set (Must‑Have)
+
+1. **Auth**: Sign up / Login (email + OAuth options). First‑login flow requires adding today’s task before any other page is accessible.
+2. **Task Gate**: After login each day, the user must create at least **one task for today** (title, subject, estimate, intensity). Until then, all other pages are **locked** (blurred/disabled) except Settings and Help.
+3. **AI Flashcard Reader**
+
+   * Input sources: typed text, PDF/URL upload (extract text), and notes.
+   * Auto‑generate flashcards (Q/A pairs) with choices and short answers.
+   * Study modes: Learn, Review, Shuffle, Leitner boxes.
+   * Memory tracking + streaks; export/import card decks (JSON/CSV).
+4. **AI Q\&A (Short + Long Answers)**
+
+   * Ask any question; choose **AI model** (dropdown of available models).
+   * Modes: *Concise*, *Explain like I’m 15*, *Exam‑Style Long Answer*.
+   * Citations when sources are provided; outline + final answer; plagiarism‑safe rephrasing.
+5. **To‑Do + Task‑Based Timetable**
+
+   * Create tasks with **Intensity** (Low/Medium/High) and **Effort (min)**.
+   * Auto‑block schedule based on available hours and intensity preference.
+   * Drag‑to‑reschedule, one‑tap “done”, partial‑complete slider.
+6. **Smart Revision Timetable (Never‑Forget Engine)**
+
+   * Spaced repetition planner that computes **next review days** per topic.
+   * Default spacing: Day 1, 3, 7, 14, 30, 60, 120 (editable); track recall quality (Again/Hard/Good/Easy) to stretch/shrink intervals.
+   * Calendar view + notifications; “catch‑up” suggestions when overdue.
+7. **Rewards & Levels (Bronze → Energon)**
+
+   * **Point economy**:
+
+     * Stage 1: 100 pts (Bronze) → unlock basic badge.
+     * Stage 2: 250 pts (Silver) → unlock profile ring.
+     * Stage 3: 500 pts (Gold) → unlock theme accent.
+     * After Stage 3, **each new level = +1000 pts**.
+   * Suggested ladder: **Bronze → Silver → Gold → Platinum → Diamond → Obsidian → Titanium → Quantum → Omega → Energon**.
+   * Earn points for: tasks completed, revision sessions, streak days, flashcard sets mastered, helpful community answers (future).
+   * Streak freeze (1/day), gentle decay after 3 missed days.
+8. **Daily Discipline Quote**
+
+   * On Home screen: automatically fetch and display **one discipline‑themed quote per day** from the internet; cache for 24h with source attribution.
+9. **Model Picker**
+
+   * Allow user to choose AI model per feature (Flashcards/Q\&A) with a fallback if quota exceeded. Persist per user.
+10. **Free Hosting Target**
+
+* Build to run within free tiers for hosting, DB, and inference proxying where possible (lightweight, client‑heavy rendering, serverless functions).
+
+## Secondary Features (Nice‑to‑Have)
+
+* Subject templates (Math/Science/Humanities) for quick task creation.
+* Import from Google Drive/Notion.
+* Community deck sharing with moderation queue.
+
+## Core Pages & States
+
+1. **Auth**: Sign up, Login, Forgot password.
+2. **Task Gate (Daily)**: Minimal screen prompting “Add your first task for today to unlock the app.” CTA opens Task modal. Until created, all nav items are disabled.
+3. **Home**: Streak, today’s tasks, next revisions, **Daily Discipline Quote**, quick start (Ask AI, Add Flashcards).
+4. **Study → Flashcards**: Deck list, deck detail, study session, stats.
+5. **Study → Q\&A**: Prompt box, model picker, response with outline → long answer; copy, save, export.
+6. **Planner → To‑Do**: Task CRUD, intensity, estimates, tags, sort/filter.
+7. **Planner → Timetable**: Auto‑scheduled blocks; drag & drop; focus mode.
+8. **Planner → Revision**: Calendar of spaced intervals; overdue queue; “snooze/complete”.
+9. **Rewards**: Level meter, points history, badges, streak controls.
+10. **Settings**: Model defaults, theme, notifications, data export, privacy.
+
+## Flows (Critical)
+
+* **First‑Day Flow**: Login → Task Gate → Add Task → App unlocks → Onboarding tooltips.
+* **Daily Flow**: Login (new day) → Task Gate check → Add/confirm today’s task → Study or Plan.
+* **Q\&A Flow**: Enter question → pick model → choose mode → get outline → approve → long answer → save to notes or flashcards.
+* **Flashcard Flow**: Import notes/PDF → AI generates deck → user edits → study with spaced repetition → points awarded based on accuracy + time.
+* **Revision Flow**: Topic graded after session → schedule recalculated → next date set.
+
+## Gamification Rules (Detailed)
+
+* **Point Sources** (suggested):
+
+  * Complete a task: 25–75 pts depending on intensity + duration.
+  * Finish a revision session: 100 pts.
+  * Maintain daily streak: +25, +50, +75… escalating weekly.
+  * Master a deck (≥90% correct): 250 pts.
+* **Level Thresholds**:
+
+  * L1 **Bronze** – 100
+  * L2 **Silver** – 250
+  * L3 **Gold** – 500
+  * L4 **Platinum** – 1,500
+  * L5 **Diamond** – 2,500
+  * L6 **Obsidian** – 3,500
+  * L7 **Titanium** – 4,500
+  * L8 **Quantum** – 5,500
+  * L9 **Omega** – 6,500
+  * L10 **Energon** – 7,500
+* Show progress bar with remaining points; confetti pulse on leveling.
+
+## UI/UX Style Guide
+
+* **Theme**: “Refined future.” Clean whites/darks, generous whitespace, 12/20/28px type scale.
+* **Motion**: Subtle micro‑interactions (hover lifts, 150–200ms ease).
+* **Components**: Cards with 2xl radius, soft shadows, minimal borders.
+* **Empty States**: Friendly, 1‑line guidance + primary CTA.
+* **Accessibility**: WCAG AA contrast, keyboard nav, reduced motion option.
+
+## Technical Notes (suggested, vendor‑agnostic)
+
+* **Frontend**: SPA/MPA with code‑split routes; PWA for offline study sessions.
+* **Backend**: Serverless functions for auth, quote fetcher, scheduling, and points.
+* **DB**: Hosted serverless DB with generous free tier.
+* **AI**: Pluggable provider interface; model registry + per‑user default.
+* **Scheduling**: Deterministic spaced‑rep engine; daily cron to enqueue reminders.
+* **Caching**: 24h cache for daily quote; client‑first render with ISR where possible.
+
+## Data Model (high level)
+
+* **User**(id, name, email, streak, level, points, modelDefaults, settings)
+* **Task**(id, userId, title, subject, intensity, estimateMin, date, status)
+* **Deck**(id, userId, title, source, cards\[], stats)
+* **QA**(id, userId, prompt, mode, model, answer, savedAt)
+* **RevisionTopic**(id, userId, title, nextDate, intervalDays, ease, history\[])
+* **PointsEvent**(id, userId, type, amount, meta, createdAt)
+* **Quote**(id, text, author, sourceUrl, dayKey)
+
+## Guardrails & Policies
+
+* **Daily Gate**: Block navigation if no **today task** exists; show persistent banner with “Add today’s task to continue.”
+* **Academic Integrity**: Encourage learning; add “understand vs copy” warnings; provide citation tools.
+* **Privacy**: Clear policy; export/delete data; analytics opt‑in only.
+
+## Success Metrics
+
+* Daily Active Users
+* Avg. Tasks Created/Day
+* 7‑day Streak %, Revision Completion %
+* Time‑to‑Answer (Q\&A), Deck Mastery Rate
+
+## Acceptance Criteria (Done = ✅)
+
+* Users cannot access main app without adding today’s task.
+* AI flashcards + Q\&A (incl. long answers) work with model picker.
+* Spaced repetition computes next dates and updates after grading.
+* Rewards ladder and points accumulate exactly as specified.
+* Daily discipline quote loads and caches with attribution.
+* Minimal, future‑refined UI with subtle animations.
+
+---
+
+**Build it to be fast, accessible, and delightful on free hosting.**
