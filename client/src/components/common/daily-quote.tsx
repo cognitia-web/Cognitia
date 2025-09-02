@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
+import type { DailyQuote as DailyQuoteType } from "@shared/schema";
 
 export default function DailyQuote() {
-  const { data: quote, isLoading } = useQuery({
+  const { data: quote, isLoading } = useQuery<DailyQuoteType>({
     queryKey: ['/api/quote/daily'],
     staleTime: 24 * 60 * 60 * 1000, // 24 hours
   });

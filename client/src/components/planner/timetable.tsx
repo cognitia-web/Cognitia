@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { TASK_INTENSITIES } from "@/lib/constants";
+import type { Task } from "@shared/schema";
 
 interface TimeSlot {
   time: string;
@@ -17,7 +18,7 @@ export default function Timetable() {
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
 
-  const { data: tasks = [] } = useQuery({
+  const { data: tasks = [] } = useQuery<Task[]>({
     queryKey: ['/api/tasks', selectedDate],
   });
 
@@ -42,7 +43,7 @@ export default function Timetable() {
 
   // Auto-schedule tasks based on intensity and available time
   const scheduleTasksAutomatically = () => {
-    const pendingTasks = tasks.filter((task: any) => task.status === "pending");
+    const pendingTasks = tasks.filter((task: Task) => task.status === "pending");
     const timeSlots = generateTimeSlots();
     
     // Sort tasks by intensity (High > Medium > Low)

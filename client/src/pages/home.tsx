@@ -7,21 +7,22 @@ import TaskGateModal from "@/components/common/task-gate-modal";
 import LevelProgress from "@/components/rewards/level-progress";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
+import type { Task, RevisionTopic, PointsEvent } from "@shared/schema";
 
 export default function Home() {
   const { user } = useAuth();
   const [showTaskGate, setShowTaskGate] = useState(false);
   const today = new Date().toISOString().split('T')[0];
 
-  const { data: todayTasks = [], isLoading: tasksLoading } = useQuery({
+  const { data: todayTasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
     queryKey: ['/api/tasks/today'],
   });
 
-  const { data: dueTasks = [] } = useQuery({
+  const { data: dueTasks = [] } = useQuery<RevisionTopic[]>({
     queryKey: ['/api/revision/due'],
   });
 
-  const { data: pointsHistory = [] } = useQuery({
+  const { data: pointsHistory = [] } = useQuery<PointsEvent[]>({
     queryKey: ['/api/points/history'],
   });
 

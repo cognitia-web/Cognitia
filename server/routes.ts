@@ -346,7 +346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const user = await storage.getUser(userId);
     if (user) {
-      const newPoints = user.points + amount;
+      const newPoints = (user.points || 0) + amount;
       await storage.updateUserPoints(userId, newPoints);
       
       // Check for level up

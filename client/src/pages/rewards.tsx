@@ -5,11 +5,12 @@ import LevelProgress from "@/components/rewards/level-progress";
 import PointsHistory from "@/components/rewards/points-history";
 import { useAuth } from "@/hooks/useAuth";
 import { LEVEL_THRESHOLDS } from "@/lib/constants";
+import type { PointsEvent } from "@shared/schema";
 
 export default function Rewards() {
   const { user } = useAuth();
   
-  const { data: pointsHistory = [] } = useQuery({
+  const { data: pointsHistory = [] } = useQuery<PointsEvent[]>({
     queryKey: ['/api/points/history'],
   });
 

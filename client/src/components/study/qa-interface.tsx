@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { AI_MODELS, QA_MODES } from "@/lib/constants";
+import type { QaHistory } from "@shared/schema";
 
 interface QAResponse {
   id: string;
@@ -29,7 +30,7 @@ export default function QAInterface() {
   const [selectedMode, setSelectedMode] = useState("exam_style");
   const [currentResponse, setCurrentResponse] = useState<QAResponse | null>(null);
 
-  const { data: qaHistory = [] } = useQuery({
+  const { data: qaHistory = [] } = useQuery<QaHistory[]>({
     queryKey: ['/api/qa/history'],
   });
 
@@ -37,8 +38,9 @@ export default function QAInterface() {
     mutationFn: async (data: { prompt: string; mode: string; model: string }) => {
       return await apiRequest('POST', '/api/qa/ask', data);
     },
-    onSuccess: (response) => {
-      setCurrentResponse(response);
+    onSuccess: async (response) => {
+      const data = await response.json();
+      setCurrentResponse(data);
       setPrompt("");
       toast({ 
         title: "Answer Generated", 

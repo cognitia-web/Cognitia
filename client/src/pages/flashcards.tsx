@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, queryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import FlashcardViewer from "@/components/study/flashcard-viewer";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import type { Deck } from "@shared/schema";
 
 export default function Flashcards() {
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export default function Flashcards() {
   const [cardCount, setCardCount] = useState(10);
   const { toast } = useToast();
 
-  const { data: decks = [], isLoading } = useQuery({
+  const { data: decks = [], isLoading } = useQuery<Deck[]>({
     queryKey: ['/api/decks'],
   });
 

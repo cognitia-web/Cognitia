@@ -120,13 +120,19 @@ export class DatabaseStorage implements IStorage {
 
   // Task operations
   async getTasks(userId: string, date?: string): Promise<Task[]> {
-    let query = db.select().from(tasks).where(eq(tasks.userId, userId));
-    
     if (date) {
-      query = query.where(and(eq(tasks.userId, userId), eq(tasks.date, date)));
+      return await db
+        .select()
+        .from(tasks)
+        .where(and(eq(tasks.userId, userId), eq(tasks.date, date)))
+        .orderBy(desc(tasks.createdAt));
     }
     
-    return await query.orderBy(desc(tasks.createdAt));
+    return await db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.userId, userId))
+      .orderBy(desc(tasks.createdAt));
   }
 
   async getTasksForDate(userId: string, date: string): Promise<Task[]> {
@@ -153,7 +159,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTask(id: string): Promise<boolean> {
     const result = await db.delete(tasks).where(eq(tasks.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Deck operations
@@ -186,7 +192,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDeck(id: string): Promise<boolean> {
     const result = await db.delete(decks).where(eq(decks.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Flashcard operations
@@ -239,7 +245,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFlashcard(id: string): Promise<boolean> {
     const result = await db.delete(flashcards).where(eq(flashcards.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Q&A operations
@@ -259,7 +265,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteQaRecord(id: string): Promise<boolean> {
     const result = await db.delete(qaHistory).where(eq(qaHistory.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Revision operations
@@ -300,7 +306,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteRevisionTopic(id: string): Promise<boolean> {
     const result = await db.delete(revisionTopics).where(eq(revisionTopics.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Points operations

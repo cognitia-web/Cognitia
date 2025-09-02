@@ -6,7 +6,7 @@ Do not change this unless explicitly requested by the user.
 */
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY,
+  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-example-key-placeholder",
 });
 
 const DEFAULT_MODEL = "gpt-4"; // Using gpt-4 as fallback since gpt-5 may not be available yet
