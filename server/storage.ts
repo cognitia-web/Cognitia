@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from "./db";
+import { firestoreService } from "./services/firestore";
 import type {
   User,
   UpsertUser,
@@ -15,6 +15,15 @@ import type {
   PointsEvent,
   DailyQuote,
 } from "@shared/schema";
+import type {
+  FirestoreUser,
+  FirestoreTask,
+  FirestoreDeck,
+  FirestoreFlashcard,
+  FirestoreQaHistory,
+  FirestoreRevisionTopic,
+  FirestorePointsEvent,
+} from "@shared/firestore-schema";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -66,7 +75,7 @@ export interface IStorage {
   createDailyQuote(quote: Omit<DailyQuote, 'id' | 'created_at'>): Promise<DailyQuote>;
 }
 
-export class SupabaseStorage implements IStorage {
+export class FirebaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const { data, error } = await supabase
