@@ -1,14 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { firestoreService } from "./services/firestore";
-import { verifyFirebaseToken, optionalFirebaseAuth } from "./middleware/firebaseAuth";
+import { storage } from "./storage";
+import { isAuthenticated } from "./replitAuth";
 import { aiService } from "./services/aiService";
 import { quoteService } from "./services/quoteService";
 import { spacedRepetitionService } from "./services/spacedRepetition";
 import { z } from "zod";
 import type { Request, Response } from "express";
 
-// Validation schemas for Firestore data
+// Validation schemas
 const taskSchema = z.object({
   title: z.string().min(1),
   subject: z.string().min(1),
@@ -23,13 +23,6 @@ const deckSchema = z.object({
   sourceContent: z.string().nullable().optional(),
 });
 
-const flashcardSchema = z.object({
-  question: z.string().min(1),
-  answer: z.string().min(1),
-  difficulty: z.enum(['easy', 'medium', 'hard']),
-  tags: z.array(z.string()).default([]),
-});
-
 const qaSchema = z.object({
   prompt: z.string().min(1),
   mode: z.string(),
@@ -37,34 +30,23 @@ const qaSchema = z.object({
   sources: z.array(z.string()).default([]),
 });
 
-const revisionTopicSchema = z.object({
-  topic: z.string().min(1),
-  subject: z.string().min(1),
-  difficulty: z.enum(['easy', 'medium', 'hard']),
-});
-
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Auth routes
-  app.get('/api/auth/user', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.get('/api/auth/user', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.firebaseUser!.uid;
-      let user = await firestoreService.getUser(userId);
+      const userId = (req.user as any).claims.sub;
+      let user = await storage.getUser(userId);
       
       // Create user if doesn't exist
       if (!user) {
-        user = await firestoreService.createUser({
+        const claims = (req.user as any).claims;
+        user = await storage.upsertUser({
           id: userId,
-          email: req.firebaseUser!.email || null,
-          firstName: req.firebaseUser!.name?.split(' ')[0] || null,
-          lastName: req.firebaseUser!.name?.split(' ').slice(1).join(' ') || null,
-          profileImageUrl: req.firebaseUser!.picture || null,
-          streak: 0,
-          level: "Bronze",
-          points: 0,
-          modelDefaults: {},
-          settings: {},
-          lastActiveDate: new Date().toISOString().split('T')[0],
+          email: claims.email || null,
+          firstName: claims.first_name || null,
+          lastName: claims.last_name || null,
+          profileImageUrl: claims.profile_image_url || null,
         });
       }
       
@@ -76,11 +58,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Task operations
-  app.get('/api/tasks/today', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.get('/api/tasks/today', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.firebaseUser!.uid;
+      const userId = (req.user as any).claims.sub;
       const today = new Date().toISOString().split('T')[0];
-      const todayTasks = await firestoreService.getTasks(userId, today);
+      const todayTasks = await storage.getTasksForDate(userId, today);
       res.json(todayTasks);
     } catch (error) {
       console.error("Error fetching today's tasks:", error);
@@ -88,11 +70,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/tasks', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.get('/api/tasks', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.firebaseUser!.uid;
+      const userId = (req.user as any).claims.sub;
       const date = req.query.date as string;
-      const tasks = await firestoreService.getTasks(userId, date);
+      const tasks = await storage.getTasks(userId, date);
       res.json(tasks);
     } catch (error) {
       console.error("Error fetching tasks:", error);
@@ -100,12 +82,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/tasks', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.post('/api/tasks', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.firebaseUser!.uid;
+      const userId = (req.user as any).claims.sub;
       const validatedData = taskSchema.parse(req.body);
       
-      const task = await firestoreService.createTask({
+      const task = await storage.createTask({
         userId,
         title: validatedData.title,
         subject: validatedData.subject,
@@ -113,8 +95,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         estimateMin: validatedData.estimateMin,
         date: validatedData.date,
         status: 'pending',
-        completedAt: null,
-        pointsAwarded: 0,
       });
       
       // Award points for creating task
@@ -128,38 +108,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/tasks/:id', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.patch('/api/tasks/:id', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const userId = req.firebaseUser!.uid;
+      const userId = (req.user as any).claims.sub;
       const updates = req.body;
       
-      await firestoreService.updateTask(id, updates);
+      const updatedTask = await storage.updateTask(id, updates);
       
       // If task is being completed, award points
-      if (updates.status === 'completed' && updates.completedAt) {
-        const tasks = await firestoreService.getTasks(userId);
-        const updatedTask = tasks.find(t => t.id === id);
-        
-        if (updatedTask) {
-          const points = await calculateTaskPoints(updatedTask.intensity, updatedTask.estimateMin);
-          await awardPoints(userId, 'task_completed', points, { taskId: updatedTask.id });
-          await firestoreService.updateTask(id, { pointsAwarded: points });
-        }
+      if (updates.status === 'completed' && updates.completedAt && updatedTask) {
+        const points = await calculateTaskPoints(updatedTask.intensity, updatedTask.estimateMin);
+        await awardPoints(userId, 'task_completed', points, { taskId: updatedTask.id });
+        await storage.updateTask(id, { pointsAwarded: points });
       }
       
-      res.json({ success: true });
+      res.json(updatedTask);
     } catch (error) {
       console.error("Error updating task:", error);
       res.status(500).json({ message: "Failed to update task" });
     }
   });
 
-  app.delete('/api/tasks/:id', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.delete('/api/tasks/:id', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      await firestoreService.deleteTask(id);
-      res.json({ success: true });
+      const success = await storage.deleteTask(id);
+      res.json({ success });
     } catch (error) {
       console.error("Error deleting task:", error);
       res.status(500).json({ message: "Failed to delete task" });
@@ -167,10 +142,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Deck operations
-  app.get('/api/decks', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.get('/api/decks', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.firebaseUser!.uid;
-      const decks = await firestoreService.getDecks(userId);
+      const userId = (req.user as any).claims.sub;
+      const decks = await storage.getDecks(userId);
       res.json(decks);
     } catch (error) {
       console.error("Error fetching decks:", error);
@@ -178,14 +153,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/decks/:id', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.get('/api/decks/:id', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const deck = await firestoreService.getDeck(id);
+      const deck = await storage.getDeck(id);
       if (!deck) {
         return res.status(404).json({ message: "Deck not found" });
       }
-      const flashcards = await firestoreService.getFlashcards(id);
+      const flashcards = await storage.getFlashcards(id);
       res.json({ ...deck, flashcards });
     } catch (error) {
       console.error("Error fetching deck:", error);
@@ -193,17 +168,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/decks', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.post('/api/decks', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.firebaseUser!.uid;
+      const userId = (req.user as any).claims.sub;
       const validatedData = deckSchema.parse(req.body);
       
-      const deck = await firestoreService.createDeck({
+      const deck = await storage.createDeck({
         userId,
         title: validatedData.title,
-        source: validatedData.source || null,
-        sourceContent: validatedData.sourceContent || null,
-        stats: {},
+        source: validatedData.source || undefined,
+        sourceContent: validatedData.sourceContent || undefined,
       });
       
       res.json(deck);
@@ -214,39 +188,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate flashcards from content
-  app.post('/api/decks/:id/generate', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.post('/api/decks/:id/generate', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.firebaseUser!.uid;
+      const userId = (req.user as any).claims.sub;
       const { id: deckId } = req.params;
       const { content, count = 10 } = req.body;
       
-      const user = await firestoreService.getUser(userId);
+      const user = await storage.getUser(userId);
       const model = user?.modelDefaults?.flashcards || 'gpt-4';
       
       const flashcards = await aiService.generateFlashcards(content, count, model);
       
       // Create flashcards in database
-      const flashcardsToCreate = flashcards.map(card => ({
-        deckId,
-        question: card.question,
-        answer: card.answer,
-        difficulty: card.difficulty || 'medium' as const,
-        tags: [],
-        nextReview: null,
-        interval: 1,
-        easeFactor: 2.5,
-        reviewCount: 0,
-        correctCount: 0,
-      }));
-      
-      const createdCards = await firestoreService.createFlashcards(flashcardsToCreate);
+      for (const card of flashcards) {
+        await storage.createFlashcard({
+          deckId,
+          question: card.question,
+          answer: card.answer,
+          difficulty: card.difficulty || 'medium',
+        });
+      }
       
       // Update deck stats
-      await firestoreService.updateDeck(deckId, {
-        stats: { totalCards: createdCards.length }
+      const allCards = await storage.getFlashcards(deckId);
+      await storage.updateDeck(deckId, {
+        stats: { totalCards: allCards.length }
       });
       
-      res.json(createdCards);
+      res.json(flashcards);
     } catch (error) {
       console.error("Error generating flashcards:", error);
       res.status(500).json({ message: "Failed to generate flashcards" });
@@ -254,27 +223,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Study flashcard and update spaced repetition
-  app.post('/api/flashcards/:id/review', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.post('/api/flashcards/:id/review', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.firebaseUser!.uid;
+      const userId = (req.user as any).claims.sub;
       const { id } = req.params;
       const { quality } = req.body; // 1=again, 2=hard, 3=good, 4=easy
       
       const updates = spacedRepetitionService.updateCard(quality);
-      // Convert string date to Date for Firestore
-      const firestoreUpdates = {
-        ...updates,
-        nextReview: new Date(updates.nextReview),
-        reviewCount: updates.reviewCount,
-        correctCount: updates.correctCount,
-      };
-      await firestoreService.updateFlashcard(id, {
-        nextReview: firestoreUpdates.nextReview,
-        interval: firestoreUpdates.intervalDays,
-        easeFactor: firestoreUpdates.ease,
-        reviewCount: firestoreUpdates.reviewCount as any,
-        correctCount: firestoreUpdates.correctCount as any,
-      });
+      await storage.updateFlashcard(id, updates);
       
       if (quality >= 3) {
         await awardPoints(userId, 'flashcard_correct', 10, { flashcardId: id });
@@ -288,10 +244,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Q&A operations
-  app.get('/api/qa/history', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.get('/api/qa/history', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.firebaseUser!.uid;
-      const history = await firestoreService.getQaHistory(userId);
+      const userId = (req.user as any).claims.sub;
+      const history = await storage.getQaHistory(userId);
       res.json(history);
     } catch (error) {
       console.error("Error fetching Q&A history:", error);
@@ -299,12 +255,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/qa/ask', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.post('/api/qa/ask', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.firebaseUser!.uid;
+      const userId = (req.user as any).claims.sub;
       const validatedData = qaSchema.parse(req.body);
       
-      const user = await firestoreService.getUser(userId);
+      const user = await storage.getUser(userId);
       const model = validatedData.model || user?.modelDefaults?.qa || 'gpt-4';
       
       const response = await aiService.generateAnswer(
@@ -314,11 +270,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validatedData.sources
       );
       
-      const qaRecord = await firestoreService.createQaHistory({
+      const qaRecord = await storage.createQaRecord({
         userId,
         prompt: validatedData.prompt,
         answer: response.answer,
-        outline: response.outline || null,
+        outline: response.outline || undefined,
         sources: validatedData.sources,
         model,
         mode: validatedData.mode,
@@ -332,10 +288,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Points and rewards
-  app.get('/api/points/history', verifyFirebaseToken, async (req: Request, res: Response) => {
+  app.get('/api/points/history', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.firebaseUser!.uid;
-      const events = await firestoreService.getPointsHistory(userId);
+      const userId = (req.user as any).claims.sub;
+      const events = await storage.getPointsEvents(userId);
       res.json(events);
     } catch (error) {
       console.error("Error fetching points history:", error);
@@ -347,8 +303,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/quote/daily', async (req: Request, res: Response) => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      // For now, generate a new quote each time - we can implement caching later
-      const quote = await quoteService.fetchDailyQuote();
+      
+      // Check if we already have today's quote
+      let quote = await storage.getDailyQuote(today);
+      
+      if (!quote) {
+        // Generate new quote for today
+        const quoteData = await quoteService.fetchDailyQuote();
+        quote = await storage.createDailyQuote({
+          text: quoteData.text,
+          author: quoteData.author,
+          sourceUrl: quoteData.sourceUrl,
+          dayKey: today,
+        });
+      }
+      
       res.json(quote);
     } catch (error) {
       console.error("Error fetching daily quote:", error);
@@ -365,13 +334,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   async function awardPoints(userId: string, type: string, amount: number, meta: any = {}): Promise<void> {
-    await firestoreService.createPointsEvent({
+    await storage.createPointsEvent({
       userId,
       type,
-      points: amount,
-      description: `${type.replace('_', ' ')} - ${amount} points`,
-      metadata: meta,
+      amount,
+      meta,
     });
+    
+    // Update user points
+    const user = await storage.getUser(userId);
+    if (user) {
+      await storage.updateUserPoints(userId, user.points + amount);
+    }
   }
 
   const httpServer = createServer(app);
