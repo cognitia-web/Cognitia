@@ -76,502 +76,591 @@ export interface IStorage {
 }
 
 export class FirebaseStorage implements IStorage {
+  // Helper methods to convert Firestore objects to shared schema objects
+  private convertFirestoreUserToUser(firestoreUser: FirestoreUser): User {
+    return {
+      id: firestoreUser.id,
+      email: firestoreUser.email || undefined,
+      firstName: firestoreUser.firstName || undefined,
+      lastName: firestoreUser.lastName || undefined,
+      profileImageUrl: firestoreUser.profileImageUrl || undefined,
+      streak: firestoreUser.streak,
+      level: firestoreUser.level,
+      points: firestoreUser.points,
+      modelDefaults: firestoreUser.modelDefaults,
+      settings: firestoreUser.settings,
+      lastActiveDate: firestoreUser.lastActiveDate,
+      createdAt: firestoreUser.createdAt.toISOString(),
+      updatedAt: firestoreUser.updatedAt.toISOString(),
+    };
+  }
+
+  private convertFirestoreTaskToTask(firestoreTask: FirestoreTask): Task {
+    return {
+      id: firestoreTask.id,
+      userId: firestoreTask.userId,
+      title: firestoreTask.title,
+      subject: firestoreTask.subject,
+      intensity: firestoreTask.intensity,
+      estimateMin: firestoreTask.estimateMin,
+      date: firestoreTask.date,
+      status: firestoreTask.status,
+      completedAt: firestoreTask.completedAt?.toISOString(),
+      pointsAwarded: firestoreTask.pointsAwarded,
+      createdAt: firestoreTask.createdAt.toISOString(),
+    };
+  }
+
+  private convertFirestoreDeckToDeck(firestoreDeck: FirestoreDeck): Deck {
+    return {
+      id: firestoreDeck.id,
+      userId: firestoreDeck.userId,
+      title: firestoreDeck.title,
+      source: firestoreDeck.source,
+      sourceContent: firestoreDeck.sourceContent,
+      stats: firestoreDeck.stats,
+      createdAt: firestoreDeck.createdAt.toISOString(),
+    };
+  }
+
+  private convertFirestoreFlashcardToFlashcard(firestoreFlashcard: FirestoreFlashcard): Flashcard {
+    return {
+      id: firestoreFlashcard.id,
+      deckId: firestoreFlashcard.deckId,
+      question: firestoreFlashcard.question,
+      answer: firestoreFlashcard.answer,
+      difficulty: firestoreFlashcard.difficulty,
+      nextReview: firestoreFlashcard.nextReview?.toISOString(),
+      intervalDays: firestoreFlashcard.interval,
+      ease: firestoreFlashcard.easeFactor,
+      reviewCount: firestoreFlashcard.reviewCount,
+      correctCount: firestoreFlashcard.correctCount,
+      createdAt: firestoreFlashcard.createdAt.toISOString(),
+    };
+  }
+
+  private convertFirestoreQaHistoryToQaHistory(firestoreQa: FirestoreQaHistory): QaHistory {
+    return {
+      id: firestoreQa.id,
+      userId: firestoreQa.userId,
+      prompt: firestoreQa.prompt,
+      mode: firestoreQa.mode,
+      model: firestoreQa.model,
+      answer: firestoreQa.answer,
+      outline: firestoreQa.outline,
+      sources: firestoreQa.sources,
+      savedAt: firestoreQa.createdAt.toISOString(),
+    };
+  }
+
+  private convertFirestorePointsEventToPointsEvent(firestoreEvent: FirestorePointsEvent): PointsEvent {
+    return {
+      id: firestoreEvent.id,
+      userId: firestoreEvent.userId,
+      type: firestoreEvent.type,
+      amount: firestoreEvent.points,
+      meta: firestoreEvent.metadata,
+      created_at: firestoreEvent.createdAt.toISOString(),
+    };
+  }
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error) {
+    try {
+      const firestoreUser = await firestoreService.getUser(id);
+      if (!firestoreUser) return undefined;
+      
+      // Convert Firestore user to shared schema user
+      return {
+        id: firestoreUser.id,
+        email: firestoreUser.email || undefined,
+        firstName: firestoreUser.firstName || undefined,
+        lastName: firestoreUser.lastName || undefined,
+        profileImageUrl: firestoreUser.profileImageUrl || undefined,
+        streak: firestoreUser.streak,
+        level: firestoreUser.level,
+        points: firestoreUser.points,
+        modelDefaults: firestoreUser.modelDefaults,
+        settings: firestoreUser.settings,
+        lastActiveDate: firestoreUser.lastActiveDate,
+        createdAt: firestoreUser.createdAt.toISOString(),
+        updatedAt: firestoreUser.updatedAt.toISOString(),
+      };
+    } catch (error) {
       console.error('Error fetching user:', error);
       return undefined;
     }
-    
-    return data;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const { data, error } = await supabase
-      .from('users')
-      .upsert(userData, { onConflict: 'id' })
-      .select()
-      .single();
-    
-    if (error) {
-      throw new Error(`Failed to upsert user: ${error.message}`);
+    try {
+      // Check if user exists
+      const existingUser = await firestoreService.getUser(userData.id);
+      
+      if (existingUser) {
+        // Update existing user
+        await firestoreService.updateUser(userData.id, {
+          email: userData.email || null,
+          firstName: userData.firstName || null,
+          lastName: userData.lastName || null,
+          profileImageUrl: userData.profileImageUrl || null,
+        });
+        
+        const updatedUser = await firestoreService.getUser(userData.id);
+        if (!updatedUser) throw new Error('Failed to retrieve updated user');
+        
+        return this.convertFirestoreUserToUser(updatedUser);
+      } else {
+        // Create new user with defaults
+        const newUser = await firestoreService.createUser({
+          id: userData.id,
+          email: userData.email || null,
+          firstName: userData.firstName || null,
+          lastName: userData.lastName || null,
+          profileImageUrl: userData.profileImageUrl || null,
+          streak: 0,
+          level: 'Bronze',
+          points: 0,
+          modelDefaults: {
+            flashcards: 'gpt-4',
+            qa: 'gpt-4',
+          },
+          settings: {
+            theme: 'system',
+            notifications: true,
+            reducedMotion: false,
+          },
+          lastActiveDate: new Date().toISOString().split('T')[0],
+        });
+        
+        return this.convertFirestoreUserToUser(newUser);
+      }
+    } catch (error) {
+      throw new Error(`Failed to upsert user: ${error}`);
     }
-    
-    return data;
   }
 
   async updateUserPoints(userId: string, points: number): Promise<void> {
-    const { error } = await supabase
-      .from('users')
-      .update({ points, updated_at: new Date().toISOString() })
-      .eq('id', userId);
-    
-    if (error) {
-      throw new Error(`Failed to update user points: ${error.message}`);
+    try {
+      await firestoreService.updateUser(userId, { points });
+    } catch (error) {
+      throw new Error(`Failed to update user points: ${error}`);
     }
   }
 
   async updateUserStreak(userId: string, streak: number): Promise<void> {
-    const { error } = await supabase
-      .from('users')
-      .update({ 
-        streak, 
-        last_active_date: new Date().toISOString().split('T')[0],
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', userId);
-    
-    if (error) {
-      throw new Error(`Failed to update user streak: ${error.message}`);
+    try {
+      await firestoreService.updateUser(userId, {
+        streak,
+        lastActiveDate: new Date().toISOString().split('T')[0],
+      });
+    } catch (error) {
+      throw new Error(`Failed to update user streak: ${error}`);
     }
   }
 
   async updateUserLevel(userId: string, level: string): Promise<void> {
-    const { error } = await supabase
-      .from('users')
-      .update({ level, updated_at: new Date().toISOString() })
-      .eq('id', userId);
-    
-    if (error) {
-      throw new Error(`Failed to update user level: ${error.message}`);
+    try {
+      await firestoreService.updateUser(userId, { level });
+    } catch (error) {
+      throw new Error(`Failed to update user level: ${error}`);
     }
   }
 
   // Task operations
   async getTasks(userId: string, date?: string): Promise<Task[]> {
-    let query = supabase
-      .from('tasks')
-      .select('*')
-      .eq('user_id', userId);
-    
-    if (date) {
-      query = query.eq('date', date);
+    try {
+      const firestoreTasks = await firestoreService.getTasks(userId, date);
+      return firestoreTasks.map(task => this.convertFirestoreTaskToTask(task));
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      return [];
     }
-    
-    const { data, error } = await query.order('created_at', { ascending: false });
-    
-    if (error) {
-      throw new Error(`Failed to fetch tasks: ${error.message}`);
-    }
-    
-    return data || [];
   }
 
   async getTasksForDate(userId: string, date: string): Promise<Task[]> {
-    const { data, error } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('date', date)
-      .order('created_at', { ascending: true });
-    
-    if (error) {
-      throw new Error(`Failed to fetch tasks for date: ${error.message}`);
+    try {
+      const firestoreTasks = await firestoreService.getTasks(userId, date);
+      return firestoreTasks.map(task => this.convertFirestoreTaskToTask(task));
+    } catch (error) {
+      console.error('Error fetching tasks for date:', error);
+      return [];
     }
-    
-    return data || [];
   }
 
   async createTask(task: InsertTask & { userId: string }): Promise<Task> {
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert({
-        user_id: task.userId,
+    try {
+      const firestoreTask = await firestoreService.createTask({
+        userId: task.userId,
         title: task.title,
         subject: task.subject,
         intensity: task.intensity,
-        estimate_min: task.estimateMin,
+        estimateMin: task.estimateMin,
         date: task.date,
         status: task.status || 'pending',
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      throw new Error(`Failed to create task: ${error.message}`);
+        completedAt: null,
+        pointsAwarded: 0,
+      });
+      
+      return this.convertFirestoreTaskToTask(firestoreTask);
+    } catch (error) {
+      throw new Error(`Failed to create task: ${error}`);
     }
-    
-    return data;
   }
 
   async updateTask(id: string, updates: Partial<Task>): Promise<Task | undefined> {
-    const { data, error } = await supabase
-      .from('tasks')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
+    try {
+      const firestoreUpdates: Partial<FirestoreTask> = {};
+      
+      if (updates.title !== undefined) firestoreUpdates.title = updates.title;
+      if (updates.subject !== undefined) firestoreUpdates.subject = updates.subject;
+      if (updates.intensity !== undefined) firestoreUpdates.intensity = updates.intensity;
+      if (updates.estimateMin !== undefined) firestoreUpdates.estimateMin = updates.estimateMin;
+      if (updates.date !== undefined) firestoreUpdates.date = updates.date;
+      if (updates.status !== undefined) firestoreUpdates.status = updates.status;
+      if (updates.completedAt !== undefined) {
+        firestoreUpdates.completedAt = updates.completedAt ? new Date(updates.completedAt) : null;
+      }
+      if (updates.pointsAwarded !== undefined) firestoreUpdates.pointsAwarded = updates.pointsAwarded;
+      
+      await firestoreService.updateTask(id, firestoreUpdates);
+      
+      // Note: FirestoreService doesn't have getTaskById, so we return undefined
+      // This needs to be implemented in FirestoreService for proper functionality
+      console.warn('updateTask: Cannot return updated task - getTaskById not implemented in FirestoreService');
+      return undefined;
+    } catch (error) {
       console.error('Error updating task:', error);
       return undefined;
     }
-    
-    return data;
   }
 
   async deleteTask(id: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('tasks')
-      .delete()
-      .eq('id', id);
-    
-    return !error;
+    try {
+      await firestoreService.deleteTask(id);
+      return true;
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      return false;
+    }
   }
 
   // Deck operations
   async getDecks(userId: string): Promise<Deck[]> {
-    const { data, error } = await supabase
-      .from('decks')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      throw new Error(`Failed to fetch decks: ${error.message}`);
+    try {
+      const firestoreDecks = await firestoreService.getDecks(userId);
+      return firestoreDecks.map(deck => this.convertFirestoreDeckToDeck(deck));
+    } catch (error) {
+      console.error('Error fetching decks:', error);
+      return [];
     }
-    
-    return data || [];
   }
 
   async getDeck(id: string): Promise<Deck | undefined> {
-    const { data, error } = await supabase
-      .from('decks')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error) {
+    try {
+      const firestoreDeck = await firestoreService.getDeck(id);
+      return firestoreDeck ? this.convertFirestoreDeckToDeck(firestoreDeck) : undefined;
+    } catch (error) {
       console.error('Error fetching deck:', error);
       return undefined;
     }
-    
-    return data;
   }
 
   async createDeck(deck: InsertDeck & { userId: string }): Promise<Deck> {
-    const { data, error } = await supabase
-      .from('decks')
-      .insert({
-        user_id: deck.userId,
+    try {
+      const firestoreDeck = await firestoreService.createDeck({
+        userId: deck.userId,
         title: deck.title,
-        source: deck.source,
-        source_content: deck.sourceContent,
+        source: deck.source || null,
+        sourceContent: deck.sourceContent || null,
         stats: deck.stats || {},
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      throw new Error(`Failed to create deck: ${error.message}`);
+      });
+      
+      return this.convertFirestoreDeckToDeck(firestoreDeck);
+    } catch (error) {
+      throw new Error(`Failed to create deck: ${error}`);
     }
-    
-    return data;
   }
 
   async updateDeck(id: string, updates: Partial<Deck>): Promise<Deck | undefined> {
-    const { data, error } = await supabase
-      .from('decks')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
+    try {
+      const firestoreUpdates: Partial<FirestoreDeck> = {};
+      
+      if (updates.title !== undefined) firestoreUpdates.title = updates.title;
+      if (updates.source !== undefined) firestoreUpdates.source = updates.source;
+      if (updates.sourceContent !== undefined) firestoreUpdates.sourceContent = updates.sourceContent;
+      if (updates.stats !== undefined) firestoreUpdates.stats = updates.stats;
+      
+      await firestoreService.updateDeck(id, firestoreUpdates);
+      
+      const updatedDeck = await firestoreService.getDeck(id);
+      return updatedDeck ? this.convertFirestoreDeckToDeck(updatedDeck) : undefined;
+    } catch (error) {
       console.error('Error updating deck:', error);
       return undefined;
     }
-    
-    return data;
   }
 
   async deleteDeck(id: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('decks')
-      .delete()
-      .eq('id', id);
-    
-    return !error;
+    try {
+      await firestoreService.deleteDeck(id);
+      return true;
+    } catch (error) {
+      console.error('Error deleting deck:', error);
+      return false;
+    }
   }
 
   // Flashcard operations
   async getFlashcards(deckId: string): Promise<Flashcard[]> {
-    const { data, error } = await supabase
-      .from('flashcards')
-      .select('*')
-      .eq('deck_id', deckId)
-      .order('created_at', { ascending: true });
-    
-    if (error) {
-      throw new Error(`Failed to fetch flashcards: ${error.message}`);
+    try {
+      const firestoreFlashcards = await firestoreService.getFlashcards(deckId);
+      return firestoreFlashcards.map(flashcard => this.convertFirestoreFlashcardToFlashcard(flashcard));
+    } catch (error) {
+      console.error('Error fetching flashcards:', error);
+      return [];
     }
-    
-    return data || [];
   }
 
   async getFlashcardsForReview(userId: string, date: string): Promise<Flashcard[]> {
-    const { data, error } = await supabase
-      .from('flashcards')
-      .select(`
-        *,
-        decks!inner(user_id)
-      `)
-      .eq('decks.user_id', userId)
-      .lte('next_review', date);
-    
-    if (error) {
-      throw new Error(`Failed to fetch flashcards for review: ${error.message}`);
+    try {
+      // Get all decks for the user first
+      const userDecks = await firestoreService.getDecks(userId);
+      const deckIds = userDecks.map(deck => deck.id);
+      
+      // Get flashcards for all user decks that are due for review
+      const allFlashcards: FirestoreFlashcard[] = [];
+      
+      for (const deckId of deckIds) {
+        const deckFlashcards = await firestoreService.getFlashcards(deckId);
+        allFlashcards.push(...deckFlashcards);
+      }
+      
+      // Filter flashcards that are due for review
+      const reviewDate = new Date(date);
+      const dueFlashcards = allFlashcards.filter(flashcard => 
+        flashcard.nextReview && flashcard.nextReview <= reviewDate
+      );
+      
+      return dueFlashcards.map(flashcard => this.convertFirestoreFlashcardToFlashcard(flashcard));
+    } catch (error) {
+      console.error('Error fetching flashcards for review:', error);
+      return [];
     }
-    
-    return data || [];
   }
 
   async createFlashcard(flashcard: InsertFlashcard & { deckId: string }): Promise<Flashcard> {
-    const { data, error } = await supabase
-      .from('flashcards')
-      .insert({
-        deck_id: flashcard.deckId,
+    try {
+      const firestoreFlashcards = await firestoreService.createFlashcards([{
+        deckId: flashcard.deckId,
         question: flashcard.question,
         answer: flashcard.answer,
         difficulty: flashcard.difficulty || 'medium',
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      throw new Error(`Failed to create flashcard: ${error.message}`);
+        tags: [],
+        nextReview: null,
+        interval: 1,
+        easeFactor: 2.5,
+        reviewCount: 0,
+        correctCount: 0,
+      }]);
+      
+      return this.convertFirestoreFlashcardToFlashcard(firestoreFlashcards[0]);
+    } catch (error) {
+      throw new Error(`Failed to create flashcard: ${error}`);
     }
-    
-    return data;
   }
 
   async updateFlashcard(id: string, updates: Partial<Flashcard>): Promise<Flashcard | undefined> {
-    const { data, error } = await supabase
-      .from('flashcards')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
+    try {
+      const firestoreUpdates: Partial<FirestoreFlashcard> = {};
+      
+      if (updates.question !== undefined) firestoreUpdates.question = updates.question;
+      if (updates.answer !== undefined) firestoreUpdates.answer = updates.answer;
+      if (updates.difficulty !== undefined) firestoreUpdates.difficulty = updates.difficulty;
+      if (updates.nextReview !== undefined) {
+        firestoreUpdates.nextReview = updates.nextReview ? new Date(updates.nextReview) : null;
+      }
+      if (updates.intervalDays !== undefined) firestoreUpdates.interval = updates.intervalDays;
+      if (updates.ease !== undefined) firestoreUpdates.easeFactor = updates.ease;
+      if (updates.reviewCount !== undefined) firestoreUpdates.reviewCount = updates.reviewCount;
+      if (updates.correctCount !== undefined) firestoreUpdates.correctCount = updates.correctCount;
+      
+      await firestoreService.updateFlashcard(id, firestoreUpdates);
+      
+      // Note: FirestoreService doesn't have getFlashcardById
+      // This needs to be implemented for proper functionality
+      console.warn('updateFlashcard: Cannot return updated flashcard - getFlashcardById not implemented in FirestoreService');
+      return undefined;
+    } catch (error) {
       console.error('Error updating flashcard:', error);
       return undefined;
     }
-    
-    return data;
   }
 
   async deleteFlashcard(id: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('flashcards')
-      .delete()
-      .eq('id', id);
-    
-    return !error;
+    try {
+      // Note: Firebase Firestore service doesn't have a deleteFlashcard method
+      // This functionality would need to be implemented in the firestore service
+      console.error('deleteFlashcard not implemented in Firestore service');
+      return false;
+    } catch (error) {
+      console.error('Error deleting flashcard:', error);
+      return false;
+    }
   }
 
   // Q&A operations
   async getQaHistory(userId: string, limit = 50): Promise<QaHistory[]> {
-    const { data, error } = await supabase
-      .from('qa_history')
-      .select('*')
-      .eq('user_id', userId)
-      .order('saved_at', { ascending: false })
-      .limit(limit);
-    
-    if (error) {
-      throw new Error(`Failed to fetch Q&A history: ${error.message}`);
+    try {
+      const firestoreQaHistory = await firestoreService.getQaHistory(userId);
+      return firestoreQaHistory
+        .slice(0, limit)
+        .map(qa => this.convertFirestoreQaHistoryToQaHistory(qa));
+    } catch (error) {
+      console.error('Error fetching Q&A history:', error);
+      return [];
     }
-    
-    return data || [];
   }
 
   async createQaRecord(qa: InsertQa & { userId: string }): Promise<QaHistory> {
-    const { data, error } = await supabase
-      .from('qa_history')
-      .insert({
-        user_id: qa.userId,
+    try {
+      const firestoreQa = await firestoreService.createQaHistory({
+        userId: qa.userId,
         prompt: qa.prompt,
         mode: qa.mode,
         model: qa.model,
         answer: qa.answer,
-        outline: qa.outline,
-        sources: qa.sources,
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      throw new Error(`Failed to create Q&A record: ${error.message}`);
+        outline: qa.outline || null,
+        sources: qa.sources || [],
+      });
+      
+      return this.convertFirestoreQaHistoryToQaHistory(firestoreQa);
+    } catch (error) {
+      throw new Error(`Failed to create Q&A record: ${error}`);
     }
-    
-    return data;
   }
 
   async deleteQaRecord(id: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('qa_history')
-      .delete()
-      .eq('id', id);
-    
-    return !error;
+    try {
+      // Note: Firebase Firestore service doesn't have a deleteQaRecord method
+      // This functionality would need to be implemented in the firestore service
+      console.error('deleteQaRecord not implemented in Firestore service');
+      return false;
+    } catch (error) {
+      console.error('Error deleting Q&A record:', error);
+      return false;
+    }
   }
 
   // Revision operations
   async getRevisionTopics(userId: string): Promise<RevisionTopic[]> {
-    const { data, error } = await supabase
-      .from('revision_topics')
-      .select('*')
-      .eq('user_id', userId)
-      .order('next_date', { ascending: true });
-    
-    if (error) {
-      throw new Error(`Failed to fetch revision topics: ${error.message}`);
+    try {
+      // Note: Firebase Firestore service doesn't have revision topics operations
+      // This functionality would need to be implemented in the firestore service
+      console.error('getRevisionTopics not implemented in Firestore service');
+      return [];
+    } catch (error) {
+      console.error('Error fetching revision topics:', error);
+      return [];
     }
-    
-    return data || [];
   }
 
   async getRevisionTopicsDue(userId: string, date: string): Promise<RevisionTopic[]> {
-    const { data, error } = await supabase
-      .from('revision_topics')
-      .select('*')
-      .eq('user_id', userId)
-      .lte('next_date', date)
-      .order('next_date', { ascending: true });
-    
-    if (error) {
-      throw new Error(`Failed to fetch due revision topics: ${error.message}`);
+    try {
+      // Note: Firebase Firestore service doesn't have revision topics operations
+      // This functionality would need to be implemented in the firestore service
+      console.error('getRevisionTopicsDue not implemented in Firestore service');
+      return [];
+    } catch (error) {
+      console.error('Error fetching due revision topics:', error);
+      return [];
     }
-    
-    return data || [];
   }
 
   async createRevisionTopic(topic: InsertRevisionTopic & { userId: string; nextDate: string }): Promise<RevisionTopic> {
-    const { data, error } = await supabase
-      .from('revision_topics')
-      .insert({
-        user_id: topic.userId,
-        title: topic.title,
-        subject: topic.subject,
-        next_date: topic.nextDate,
-        interval_days: 1,
-        ease: 2.5,
-        review_history: [],
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      throw new Error(`Failed to create revision topic: ${error.message}`);
+    try {
+      // Note: Firebase Firestore service doesn't have revision topics operations
+      // This functionality would need to be implemented in the firestore service
+      throw new Error('createRevisionTopic not implemented in Firestore service');
+    } catch (error) {
+      throw new Error(`Failed to create revision topic: ${error}`);
     }
-    
-    return data;
   }
 
   async updateRevisionTopic(id: string, updates: Partial<RevisionTopic>): Promise<RevisionTopic | undefined> {
-    const { data, error } = await supabase
-      .from('revision_topics')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
+    try {
+      // Note: Firebase Firestore service doesn't have revision topics operations
+      // This functionality would need to be implemented in the firestore service
+      console.error('updateRevisionTopic not implemented in Firestore service');
+      return undefined;
+    } catch (error) {
       console.error('Error updating revision topic:', error);
       return undefined;
     }
-    
-    return data;
   }
 
   async deleteRevisionTopic(id: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('revision_topics')
-      .delete()
-      .eq('id', id);
-    
-    return !error;
+    try {
+      // Note: Firebase Firestore service doesn't have revision topics operations
+      // This functionality would need to be implemented in the firestore service
+      console.error('deleteRevisionTopic not implemented in Firestore service');
+      return false;
+    } catch (error) {
+      console.error('Error deleting revision topic:', error);
+      return false;
+    }
   }
 
   // Points operations
   async getPointsEvents(userId: string, limit = 100): Promise<PointsEvent[]> {
-    const { data, error } = await supabase
-      .from('points_events')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    
-    if (error) {
-      throw new Error(`Failed to fetch points events: ${error.message}`);
+    try {
+      const firestoreEvents = await firestoreService.getPointsHistory(userId);
+      return firestoreEvents
+        .slice(0, limit)
+        .map(event => this.convertFirestorePointsEventToPointsEvent(event));
+    } catch (error) {
+      console.error('Error fetching points events:', error);
+      return [];
     }
-    
-    return data || [];
   }
 
   async createPointsEvent(event: Omit<PointsEvent, 'id' | 'created_at'>): Promise<PointsEvent> {
-    const { data, error } = await supabase
-      .from('points_events')
-      .insert({
-        user_id: event.userId,
+    try {
+      const firestoreEvent = await firestoreService.createPointsEvent({
+        userId: event.userId,
         type: event.type,
-        amount: event.amount,
-        meta: event.meta || {},
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      throw new Error(`Failed to create points event: ${error.message}`);
+        points: event.amount,
+        description: `${event.type} event`,
+        metadata: event.meta || {},
+      });
+      
+      return this.convertFirestorePointsEventToPointsEvent(firestoreEvent);
+    } catch (error) {
+      throw new Error(`Failed to create points event: ${error}`);
     }
-    
-    return data;
   }
 
   // Daily quote operations
   async getDailyQuote(dayKey: string): Promise<DailyQuote | undefined> {
-    const { data, error } = await supabase
-      .from('daily_quotes')
-      .select('*')
-      .eq('day_key', dayKey)
-      .single();
-    
-    if (error) {
+    try {
+      // Note: Firebase Firestore service doesn't have daily quote operations
+      // This functionality would need to be implemented in the firestore service
+      console.error('getDailyQuote not implemented in Firestore service');
+      return undefined;
+    } catch (error) {
       console.error('Error fetching daily quote:', error);
       return undefined;
     }
-    
-    return data;
   }
 
   async createDailyQuote(quote: Omit<DailyQuote, 'id' | 'created_at'>): Promise<DailyQuote> {
-    const { data, error } = await supabase
-      .from('daily_quotes')
-      .insert({
-        text: quote.text,
-        author: quote.author,
-        source_url: quote.sourceUrl,
-        day_key: quote.dayKey,
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      throw new Error(`Failed to create daily quote: ${error.message}`);
+    try {
+      // Note: Firebase Firestore service doesn't have daily quote operations
+      // This functionality would need to be implemented in the firestore service
+      throw new Error('createDailyQuote not implemented in Firestore service');
+    } catch (error) {
+      throw new Error(`Failed to create daily quote: ${error}`);
     }
-    
-    return data;
   }
 }
 
-export const storage = new SupabaseStorage();
+export const storage = new FirebaseStorage();

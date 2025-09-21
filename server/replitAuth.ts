@@ -6,7 +6,7 @@ import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
-import { supabase } from "./db";
+import { firestoreService } from "./services/firestore";
 
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
@@ -57,19 +57,44 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  const { error } = await supabase
-    .from('users')
-    .upsert({
-      id: claims["sub"],
-      email: claims["email"],
-      first_name: claims["first_name"],
-      last_name: claims["last_name"],
-      profile_image_url: claims["profile_image_url"],
-    }, { onConflict: 'id' });
-  
-  if (error) {
+  try {
+    // Check if user exists
+    const existingUser = await firestoreService.getUser(claims["sub"]);
+    
+    if (existingUser) {
+      // Update existing user
+      await firestoreService.updateUser(claims["sub"], {
+        email: claims["email"] || null,
+        firstName: claims["first_name"] || null,
+        lastName: claims["last_name"] || null,
+        profileImageUrl: claims["profile_image_url"] || null,
+      });
+    } else {
+      // Create new user with defaults
+      await firestoreService.createUser({
+        id: claims["sub"],
+        email: claims["email"] || null,
+        firstName: claims["first_name"] || null,
+        lastName: claims["last_name"] || null,
+        profileImageUrl: claims["profile_image_url"] || null,
+        streak: 0,
+        level: 'Bronze',
+        points: 0,
+        modelDefaults: {
+          flashcards: 'gpt-4',
+          qa: 'gpt-4',
+        },
+        settings: {
+          theme: 'system',
+          notifications: true,
+          reducedMotion: false,
+        },
+        lastActiveDate: new Date().toISOString().split('T')[0],
+      });
+    }
+  } catch (error) {
     console.error('Error upserting user:', error);
-  }
+  } // TODO: Remove old code below
 }
 
 export async function setupAuth(app: Express) {
