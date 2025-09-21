@@ -48,13 +48,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', verifyFirebaseToken, async (req: Request, res: Response) => {
     try {
-<<<<<<< HEAD
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-=======
       const userId = req.firebaseUser!.uid;
       let user = await firestoreService.getUser(userId);
       
@@ -75,7 +68,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
->>>>>>> 674a60c (Integrate Firebase for user authentication and database management)
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
