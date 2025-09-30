@@ -132,7 +132,7 @@
             <div class="flex justify-between text-sm">
               <span class="text-gray-600 dark:text-gray-400">Total Time:</span>
               <span class="font-semibold">
-                {{ schedule.slots.reduce((sum, slot) => sum + slot.duration, 0) }} minutes
+                {{ getTotalDuration(schedule) }} minutes
               </span>
             </div>
           </div>

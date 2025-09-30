@@ -163,4 +163,8 @@ export class TimetableComponent implements OnInit {
       default: return 'text-gray-600 dark:text-gray-400';
     }
   }
+  
+  getTotalDuration(schedule: DailySchedule): number {
+    return schedule.slots.reduce((sum, slot) => sum + slot.duration, 0);
+  }
 }

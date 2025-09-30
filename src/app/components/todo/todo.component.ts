@@ -100,4 +100,15 @@ export class TodoComponent implements OnInit {
   isOverdue(deadline: Date): boolean {
     return new Date(deadline) < new Date() && !this.todos.find(t => t.deadline === deadline)?.completed;
   }
+  
+  getDeadlineString(deadline: any): string {
+    if (!deadline) return '';
+    if (deadline.toDate) {
+      return deadline.toDate().toLocaleString();
+    }
+    if (deadline instanceof Date) {
+      return deadline.toLocaleString();
+    }
+    return String(deadline);
+  }
 }

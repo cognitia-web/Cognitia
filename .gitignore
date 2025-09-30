@@ -47,5 +47,5 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 
-# Environment
-/src/environments/environment.ts
+# Environment - Uncomment the line below if you want to keep Firebase config private
+# /src/environments/environment.ts

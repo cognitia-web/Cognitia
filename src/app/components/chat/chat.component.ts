@@ -83,4 +83,15 @@ export class ChatComponent implements OnInit {
       this.loading = false;
     }
   }
+  
+  getTimestamp(timestamp: any): string {
+    if (!timestamp) return '';
+    if (timestamp.toDate) {
+      return timestamp.toDate().toLocaleTimeString();
+    }
+    if (timestamp instanceof Date) {
+      return timestamp.toLocaleTimeString();
+    }
+    return '';
+  }
 }

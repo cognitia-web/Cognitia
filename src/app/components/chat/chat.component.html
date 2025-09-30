@@ -20,7 +20,7 @@
              [class.dark:bg-gray-700]="!message.isUser">
           <p class="whitespace-pre-wrap">{{ message.message }}</p>
           <span class="text-xs opacity-70 mt-1 block">
-            {{ message.timestamp.toDate ? message.timestamp.toDate().toLocaleTimeString() : '' }}
+            {{ getTimestamp(message.timestamp) }}
           </span>
         </div>
       </div>
