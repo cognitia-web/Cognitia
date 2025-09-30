@@ -1,0 +1,114 @@
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-bold">To-Do List</h1>
+    <button (click)="showAddForm = !showAddForm" class="btn-primary">
+      {{ showAddForm ? 'Cancel' : '+ Add Task' }}
+    </button>
+  </div>
+  
+  <!-- Add Todo Form -->
+  <div *ngIf="showAddForm" class="card mb-6">
+    <h2 class="text-xl font-semibold mb-4">New Task</h2>
+    <form (ngSubmit)="addTodo()" class="space-y-4">
+      <div>
+        <label for="title" class="block text-sm font-medium mb-2">Title</label>
+        <input
+          id="title"
+          type="text"
+          [(ngModel)]="newTodo.title"
+          name="title"
+          required
+          class="input-field"
+          placeholder="Task title"
+        />
+      </div>
+      
+      <div>
+        <label for="description" class="block text-sm font-medium mb-2">Description</label>
+        <textarea
+          id="description"
+          [(ngModel)]="newTodo.description"
+          name="description"
+          rows="3"
+          class="input-field"
+          placeholder="Task description"
+        ></textarea>
+      </div>
+      
+      <div>
+        <label for="deadline" class="block text-sm font-medium mb-2">Deadline</label>
+        <input
+          id="deadline"
+          type="datetime-local"
+          [(ngModel)]="newTodo.deadline"
+          name="deadline"
+          required
+          class="input-field"
+        />
+      </div>
+      
+      <button type="submit" class="btn-primary">
+        Add Task
+      </button>
+    </form>
+  </div>
+  
+  <!-- Todo List -->
+  <div class="space-y-4">
+    <div *ngIf="todos.length === 0" class="card text-center text-gray-500 dark:text-gray-400 py-12">
+      <p class="text-lg">No tasks yet!</p>
+      <p class="text-sm mt-2">Click "Add Task" to create your first to-do item.</p>
+    </div>
+    
+    <div *ngFor="let todo of todos" class="card hover:shadow-lg transition-shadow">
+      <div class="flex items-start space-x-4">
+        <input
+          type="checkbox"
+          [checked]="todo.completed"
+          (change)="toggleComplete(todo)"
+          class="mt-1 w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
+        />
+        
+        <div class="flex-1">
+          <h3 class="text-lg font-semibold"
+              [class.line-through]="todo.completed"
+              [class.text-gray-500]="todo.completed">
+            {{ todo.title }}
+          </h3>
+          
+          <p *ngIf="todo.description" 
+             class="text-gray-600 dark:text-gray-400 mt-1"
+             [class.line-through]="todo.completed">
+            {{ todo.description }}
+          </p>
+          
+          <div class="flex items-center space-x-4 mt-3 text-sm">
+            <span class="flex items-center"
+                  [class.text-red-600]="isOverdue(todo.deadline) && !todo.completed"
+                  [class.text-gray-500]="todo.completed"
+                  [class.text-gray-600]="!isOverdue(todo.deadline) && !todo.completed">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              {{ todo.deadline.toDate ? todo.deadline.toDate().toLocaleString() : todo.deadline }}
+            </span>
+            
+            <span *ngIf="todo.completed" class="text-green-600 dark:text-green-400">
+              ✓ Completed
+            </span>
+          </div>
+        </div>
+        
+        <button
+          (click)="deleteTodo(todo.id!)"
+          class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-2"
+          title="Delete task"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

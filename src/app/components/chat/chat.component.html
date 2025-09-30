@@ -1,0 +1,60 @@
+<div class="container mx-auto px-4 py-8 max-w-4xl h-[calc(100vh-8rem)]">
+  <h1 class="text-3xl font-bold mb-6">AI Chat Assistant</h1>
+  
+  <div class="card h-[calc(100%-8rem)] flex flex-col">
+    <!-- Messages Container -->
+    <div class="flex-1 overflow-y-auto space-y-4 mb-4 p-4">
+      <div *ngIf="messages.length === 0" class="text-center text-gray-500 dark:text-gray-400 py-12">
+        <p class="text-lg">Start a conversation with your AI assistant!</p>
+        <p class="text-sm mt-2">Ask questions about your studies, homework, or any topic you need help with.</p>
+      </div>
+      
+      <div *ngFor="let message of messages" 
+           class="flex"
+           [class.justify-end]="message.isUser"
+           [class.justify-start]="!message.isUser">
+        <div class="max-w-[70%] rounded-lg px-4 py-3"
+             [class.bg-primary-600]="message.isUser"
+             [class.text-white]="message.isUser"
+             [class.bg-gray-200]="!message.isUser"
+             [class.dark:bg-gray-700]="!message.isUser">
+          <p class="whitespace-pre-wrap">{{ message.message }}</p>
+          <span class="text-xs opacity-70 mt-1 block">
+            {{ message.timestamp.toDate ? message.timestamp.toDate().toLocaleTimeString() : '' }}
+          </span>
+        </div>
+      </div>
+      
+      <div *ngIf="loading" class="flex justify-start">
+        <div class="max-w-[70%] rounded-lg px-4 py-3 bg-gray-200 dark:bg-gray-700">
+          <div class="flex space-x-2">
+            <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+            <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Input Area -->
+    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+      <form (ngSubmit)="sendMessage()" class="flex space-x-2">
+        <input
+          type="text"
+          [(ngModel)]="newMessage"
+          name="message"
+          placeholder="Type your message..."
+          class="input-field flex-1"
+          [disabled]="loading"
+        />
+        <button
+          type="submit"
+          [disabled]="!newMessage.trim() || loading"
+          class="btn-primary disabled:opacity-50 disabled:cursor-not-allowed px-6"
+        >
+          Send
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
