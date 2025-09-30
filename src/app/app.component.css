@@ -1,1 +1,25 @@
-/* Component-specific styles if needed */
+/* Navigation Link Styles */
+.nav-link {
+  @apply flex items-center space-x-2 px-4 py-2.5 rounded-xl font-medium text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-primary-50 hover:to-accent-50 dark:hover:from-primary-900/20 dark:hover:to-accent-900/20 transition-all duration-300 transform hover:scale-105;
+}
+
+.nav-link svg {
+  @apply transition-transform duration-300 group-hover:scale-110;
+}
+
+.nav-active {
+  @apply bg-gradient-to-r from-primary-600 to-accent-600 text-white shadow-lg;
+}
+
+.nav-active svg {
+  @apply drop-shadow-lg;
+}
+
+/* Mobile Navigation Links */
+.mobile-nav-link {
+  @apply flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-primary-50 hover:to-accent-50 dark:hover:from-primary-900/20 dark:hover:to-accent-900/20 transition-all duration-300 transform hover:translate-x-2;
+}
+
+.mobile-nav-active {
+  @apply bg-gradient-to-r from-primary-600 to-accent-600 text-white shadow-lg;
+}
