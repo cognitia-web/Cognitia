@@ -10,7 +10,10 @@ import { ExamPrepComponent } from './components/exam-prep/exam-prep.component';
 import { ProfileComponent } from './components/profile/profile.component';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
+  { 
+    path: '', 
+    loadComponent: () => import('./pages/landing/landing.component').then(m => m.LandingComponent)
+  },
   { path: 'login', component: LoginComponent },
   { path: 'signup', component: SignupComponent },
   { path: 'chat', component: ChatComponent, canActivate: [authGuard] },
@@ -19,5 +22,5 @@ export const routes: Routes = [
   { path: 'flashcards', component: FlashcardComponent, canActivate: [authGuard] },
   { path: 'exam-prep', component: ExamPrepComponent, canActivate: [authGuard] },
   { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
-  { path: '**', redirectTo: '/login' }
+  { path: '**', redirectTo: '' }
 ];
