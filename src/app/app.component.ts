@@ -1,55 +1,109 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterOutlet, RouterModule, NavigationEnd } from '@angular/router';
-import { AuthService } from './services/auth.service';
-import { ThemeService } from './services/theme.service';
-import { filter } from 'rxjs/operators';
+import { RouterOutlet } from '@angular/router';
+import { ToastComponent } from './shared/components/toast/toast.component';
+import { BreadcrumbComponent } from './shared/components/breadcrumb/breadcrumb.component';
+import { FabComponent, FabAction } from './shared/components/fab/fab.component';
+import { CommandPaletteComponent } from './shared/components/command-palette/command-palette.component';
+import { ToastService } from './shared/components/toast/toast.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterModule],
+  imports: [
+    CommonModule, 
+    RouterOutlet,
+    ToastComponent,
+    BreadcrumbComponent,
+    FabComponent,
+    CommandPaletteComponent
+  ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
 export class AppComponent implements OnInit {
-  title = 'Cognitia';
+  title = 'cognitia';
+  showNav = true;
   isAuthenticated = false;
-  showNav = false;
   mobileMenuOpen = false;
-  
-  authService = inject(AuthService);
-  themeService = inject(ThemeService);
-  private router = inject(Router);
-  
-  ngOnInit(): void {
-    this.authService.user$.subscribe(user => {
-      this.isAuthenticated = !!user;
-    });
+
+  fabActions: FabAction[] = [
+    {
+      icon: '✓',
+      label: 'New Task',
+      action: 'new-task',
+      color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+    },
+    {
+      icon: '📅',
+      label: 'New Schedule',
+      action: 'new-schedule',
+      color: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+    },
+    {
+      icon: '📝',
+      label: 'New Note',
+      action: 'new-note',
+      color: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+    },
+    {
+      icon: '🎴',
+      label: 'New Flashcard',
+      action: 'new-flashcard',
+      color: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)'
+    }
+  ];
+
+  constructor(private toastService: ToastService) {}
+
+  ngOnInit() {
+    // Check authentication status
+    this.checkAuthStatus();
     
-    // Hide nav on login/signup pages
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: any) => {
-      this.showNav = !event.url.includes('/login') && !event.url.includes('/signup');
-      this.mobileMenuOpen = false;
-    });
+    // Show welcome message
+    setTimeout(() => {
+      if (this.isAuthenticated) {
+        this.toastService.success('Welcome back! 🎉');
+      }
+    }, 1000);
   }
-  
-  toggleDarkMode(): void {
-    this.themeService.toggleDarkMode();
+
+  checkAuthStatus() {
+    // This would typically check your auth service
+    // For now, we'll check if we're on login/signup pages
+    const currentPath = window.location.pathname;
+    this.isAuthenticated = !['/login', '/signup', '/'].includes(currentPath);
+    this.showNav = this.isAuthenticated;
   }
-  
-  isDarkMode(): boolean {
-    return this.themeService.isDarkMode();
-  }
-  
-  toggleMobileMenu(): void {
+
+  toggleMobileMenu() {
     this.mobileMenuOpen = !this.mobileMenuOpen;
   }
-  
-  async logout(): Promise<void> {
-    await this.authService.logout();
-    this.mobileMenuOpen = false;
+
+  toggleDarkMode() {
+    document.documentElement.classList.toggle('dark');
+    const isDark = this.isDarkMode();
+    this.toastService.info(isDark ? '🌙 Dark mode enabled' : '☀️ Light mode enabled');
+  }
+
+  isDarkMode(): boolean {
+    return document.documentElement.classList.contains('dark');
+  }
+
+  onFabAction(action: string) {
+    switch(action) {
+      case 'new-task':
+        this.toastService.success('Creating new task...');
+        break;
+      case 'new-schedule':
+        this.toastService.success('Creating new schedule...');
+        break;
+      case 'new-note':
+        this.toastService.success('Creating new note...');
+        break;
+      case 'new-flashcard':
+        this.toastService.success('Creating new flashcard...');
+        break;
+    }
   }
 }
