@@ -1,6 +1,6 @@
-import { Component, Input, signal } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { interval } from 'rxjs';
+import { interval, Subscription } from 'rxjs';
 
 interface Slide {
   image: string;
@@ -280,7 +280,7 @@ interface Slide {
     }
   `]
 })
-export class HeroSliderComponent {
+export class HeroSliderComponent implements OnInit, OnDestroy {
   @Input() slides: Slide[] = [
     {
       image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&q=80',
@@ -306,23 +306,28 @@ export class HeroSliderComponent {
   
   private currentIndexSignal = signal(0);
   currentIndex = this.currentIndexSignal.asReadonly();
+  private autoplaySubscription?: Subscription;
   
   ngOnInit() {
     this.startAutoplay();
   }
   
+  ngOnDestroy() {
+    this.autoplaySubscription?.unsubscribe();
+  }
+  
   private startAutoplay() {
-    interval(this.autoplayDelay).subscribe(() => {
+    this.autoplaySubscription = interval(this.autoplayDelay).subscribe(() => {
       this.nextSlide();
     });
   }
   
   nextSlide() {
-    this.currentIndexSignal.update(i => (i + 1) % this.slides.length);
+    this.currentIndexSignal.update((i: number) => (i + 1) % this.slides.length);
   }
   
   previousSlide() {
-    this.currentIndexSignal.update(i => 
+    this.currentIndexSignal.update((i: number) => 
       i === 0 ? this.slides.length - 1 : i - 1
     );
   }

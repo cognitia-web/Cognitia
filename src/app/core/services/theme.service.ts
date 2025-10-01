@@ -1,9 +1,7 @@
 import { Injectable, signal, computed, effect } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 
-export type ThemeMode = 'light' | 'dark' | 'auto';
-
-export interface ThemeGradient {
+interface ThemeGradient {
   name: string;
   gradient: string;
   primary: string;
@@ -14,11 +12,15 @@ export interface ThemeGradient {
   providedIn: 'root'
 })
 export class ThemeService {
-  private readonly THEME_KEY = 'cognitia_theme';
-  private readonly GRADIENT_KEY = 'cognitia_gradient';
+  private isDarkModeSignal = signal(false);
+  private currentGradientIndexSignal = signal(0);
+  private isSunriseSignal = signal(false);
   
-  // Theme gradients (sunrise effect backgrounds)
-  private readonly gradients: ThemeGradient[] = [
+  isDarkMode = this.isDarkModeSignal.asReadonly();
+  currentGradientIndex = this.currentGradientIndexSignal.asReadonly();
+  isSunrise = this.isSunriseSignal.asReadonly();
+  
+  private gradients: ThemeGradient[] = [
     {
       name: 'sunrise',
       gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -69,48 +71,15 @@ export class ThemeService {
     }
   ];
   
-  // Signals for reactive state
-  private currentGradientIndex = signal(0);
-  private isDarkModeSignal = signal(false);
-  
-  // Computed values
-  currentGradient = computed(() => this.gradients[this.currentGradientIndex()]);
-  isDarkMode = computed(() => this.isDarkModeSignal());
-  
-  // BehaviorSubjects for RxJS compatibility
-  private gradientSubject = new BehaviorSubject<ThemeGradient>(this.gradients[0]);
-  private darkModeSubject = new BehaviorSubject<boolean>(false);
-  
-  public gradient$ = this.gradientSubject.asObservable();
-  public darkMode$ = this.darkModeSubject.asObservable();
-  
   constructor() {
-    this.loadSavedTheme();
-    this.applyTheme();
-    
-    // Effect to sync signal changes with subjects
-    effect(() => {
-      this.gradientSubject.next(this.currentGradient());
-      this.darkModeSubject.next(this.isDarkMode());
-    });
+    this.initializeTheme();
   }
   
-  /**
-   * Load saved theme from localStorage
-   */
-  private loadSavedTheme(): void {
-    const savedGradientIndex = localStorage.getItem(this.GRADIENT_KEY);
-    const savedDarkMode = localStorage.getItem(this.THEME_KEY);
-    
-    if (savedGradientIndex) {
-      const index = parseInt(savedGradientIndex, 10);
-      if (index >= 0 && index < this.gradients.length) {
-        this.currentGradientIndex.set(index);
-      }
-    }
-    
+  private initializeTheme() {
+    const savedDarkMode = localStorage.getItem('darkMode');
     if (savedDarkMode) {
-      this.isDarkModeSignal.set(savedDarkMode === 'dark');
+      this.isDarkModeSignal.set(savedDarkMode === 'true');
+      this.applyDarkMode(this.isDarkModeSignal());
     } else {
       // Check system preference
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;

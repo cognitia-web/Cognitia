@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd, ActivatedRoute, RouterModule } from '@angular/router';
 import { filter, map } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 import { fadeIn } from '../../../core/animations/page.animations';
 
 interface Breadcrumb {
@@ -134,8 +135,9 @@ interface Breadcrumb {
   `],
   animations: [fadeIn]
 })
-export class BreadcrumbComponent implements OnInit {
+export class BreadcrumbComponent implements OnInit, OnDestroy {
   breadcrumbs: Breadcrumb[] = [];
+  private routerSubscription?: Subscription;
   
   // Route label mapping
   private routeLabels: { [key: string]: string } = {
@@ -158,17 +160,21 @@ export class BreadcrumbComponent implements OnInit {
   
   ngOnInit() {
     // Build breadcrumbs on navigation
-    this.router.events
+    this.routerSubscription = this.router.events
       .pipe(
-        filter(event => event instanceof NavigationEnd),
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
         map(() => this.buildBreadcrumbs(this.activatedRoute.root))
       )
-      .subscribe(breadcrumbs => {
+      .subscribe((breadcrumbs: Breadcrumb[]) => {
         this.breadcrumbs = breadcrumbs;
       });
     
     // Initial breadcrumb
     this.breadcrumbs = this.buildBreadcrumbs(this.activatedRoute.root);
+  }
+  
+  ngOnDestroy() {
+    this.routerSubscription?.unsubscribe();
   }
   
   private buildBreadcrumbs(
@@ -188,7 +194,7 @@ export class BreadcrumbComponent implements OnInit {
     for (const child of children) {
       // Get route URL segment
       const routeURL: string = child.snapshot.url
-        .map(segment => segment.path)
+        .map((segment: any) => segment.path)
         .join('/');
       
       // Skip empty routes

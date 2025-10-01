@@ -1,0 +1,126 @@
+// ============================================
+// COGNITIA DESIGN SYSTEM - EXACT SPECIFICATIONS
+// Based on Tim Cook's requirements
+// ============================================
+
+:root {
+  // Typography
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Playfair Display', serif;
+  
+  // Primary Gradient Colors
+  --primary-grad-a: #6A11CB;
+  --primary-grad-b: #2575FC;
+  --primary-gradient: linear-gradient(90deg, #6A11CB, #2575FC);
+  
+  // Sunrise/Accent Colors
+  --accent-sun: #FFD47A;
+  --accent-sun-2: #FF8A65;
+  --sunrise-gradient: linear-gradient(180deg, #FFF1C6 0%, #FFD47A 20%, #FF8A65 45%, #2575FC 100%);
+  
+  // Background Colors
+  --bg-dark-1: #070712;
+  --bg-dark-2: #0f1724;
+  --bg-gradient-1: linear-gradient(180deg, #0b1020, #0f1724);
+  --bg-light: #ffffff;
+  
+  // Neutral Colors
+  --muted: #9AA5B1;
+  --text-primary: #e6eef8;
+  --text-secondary: #9AA5B1;
+  --text-dark: #111827;
+  
+  // Layout
+  --container-width: 1200px;
+  --container-padding: 24px;
+  
+  // Spacing System (8px base unit)
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  
+  // Border Radius
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+  
+  // Shadows
+  --shadow-sm: 0 2px 8px rgba(7, 10, 25, 0.15);
+  --shadow-md: 0 6px 20px rgba(7, 10, 25, 0.25);
+  --shadow-lg: 0 14px 40px rgba(11, 16, 50, 0.55);
+  --shadow-xl: 0 20px 60px rgba(11, 16, 50, 0.65);
+  
+  // Transitions
+  --transition-fast: 160ms;
+  --transition-base: 320ms;
+  --transition-slow: 600ms;
+  --transition-slower: 900ms;
+  --transition-slowest: 1200ms;
+  
+  // Easing
+  --ease-smooth: cubic-bezier(0.2, 0.9, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  
+  // Z-index layers
+  --z-background: -10;
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-floating-nav: 1100;
+  --z-modal: 1200;
+  --z-toast: 1300;
+  
+  // Component Specific
+  --nav-width-collapsed: 72px;
+  --nav-width-expanded: 240px;
+  --hero-height-desktop: 640px;
+  --hero-height-tablet: 460px;
+  --hero-height-mobile: 360px;
+  
+  // Animation States
+  --bg-impact: 0;
+  --bg-blend: 0;
+}
+
+// SCSS Variables (for use in stylesheets)
+$max-width: 1200px;
+$container-padding: 24px;
+
+// Colors
+$primary-gradient: linear-gradient(90deg, #6A11CB, #2575FC);
+$accent: #FFB86C;
+$muted: #9AA5B1;
+
+// Spacing
+$space-xs: 8px;
+$space-sm: 12px;
+$space-md: 16px;
+$space-lg: 24px;
+$space-xl: 32px;
+$space-2xl: 48px;
+
+// Border Radius
+$border-radius-sm: 8px;
+$border-radius-md: 12px;
+$border-radius-lg: 14px;
+
+// Shadows
+$shadow-sm: 0 2px 8px rgba(7, 10, 25, 0.15);
+$shadow-md: 0 6px 20px rgba(7, 10, 25, 0.25);
+$shadow-lg: 0 14px 40px rgba(11, 16, 50, 0.55);
+
+// Typography
+$font-base: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+$font-display: 'Playfair Display', serif;
+
+// Breakpoints
+$breakpoint-mobile: 480px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+$breakpoint-wide: 1280px;
