@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { ToastComponent } from './shared/components/toast/toast.component';
@@ -7,6 +7,9 @@ import { FabComponent, FabAction } from './shared/components/fab/fab.component';
 import { CommandPaletteComponent } from './shared/components/command-palette/command-palette.component';
 import { AnimatedBackgroundComponent } from './shared/components/animated-background/animated-background.component';
 import { PremiumFooterComponent } from './shared/components/premium-footer/premium-footer.component';
+import { FloatingNavComponent } from './shared/components/floating-nav/floating-nav.component';
+import { AppLoaderComponent } from './shared/components/app-loader/app-loader.component';
+import { ActionToggleButtonComponent } from './shared/components/action-button/action-toggle-button.component';
 import { ToastService } from './shared/components/toast/toast.service';
 
 @Component({
@@ -20,7 +23,10 @@ import { ToastService } from './shared/components/toast/toast.service';
     FabComponent,
     CommandPaletteComponent,
     AnimatedBackgroundComponent,
-    PremiumFooterComponent
+    PremiumFooterComponent,
+    FloatingNavComponent,
+    AppLoaderComponent,
+    ActionToggleButtonComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
@@ -30,6 +36,10 @@ export class AppComponent implements OnInit {
   showNav = true;
   isAuthenticated = false;
   mobileMenuOpen = false;
+
+  // App ready state for loader
+  private isAppReadySignal = signal(false);
+  isAppReady = this.isAppReadySignal.asReadonly();
 
   fabActions: FabAction[] = [
     {
@@ -64,12 +74,15 @@ export class AppComponent implements OnInit {
     // Check authentication status
     this.checkAuthStatus();
     
-    // Show welcome message
+    // Simulate app initialization (2.5s loader)
     setTimeout(() => {
+      this.isAppReadySignal.set(true);
+      
+      // Show welcome message after loader
       if (this.isAuthenticated) {
         this.toastService.success('Welcome back! 🎉');
       }
-    }, 1000);
+    }, 2500);
   }
 
   checkAuthStatus() {

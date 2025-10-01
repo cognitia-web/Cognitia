@@ -9,10 +9,10 @@ import { HeroSliderComponent } from '../../shared/components/hero-slider/hero-sl
   imports: [CommonModule, RouterModule, HeroSliderComponent],
   template: `
     <div class="home-page">
-      <!-- Hero Slider Section -->
+      <!-- Hero Slider Section - Tim Cook Spec -->
       <section class="hero-section">
         <div class="container">
-          <app-hero-slider></app-hero-slider>
+          <app-hero-slider [slides]="heroSlides"></app-hero-slider>
         </div>
       </section>
       
@@ -370,5 +370,27 @@ export class HomeComponent {
     { value: '50K+', label: 'Tasks Completed' },
     { value: '95%', label: 'Success Rate' },
     { value: '4.9★', label: 'User Rating' }
+  ];
+  
+  // Hero slides for slider
+  heroSlides = [
+    {
+      image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&q=80',
+      title: 'Transform Your Study Habits',
+      subtitle: 'AI-Powered Learning',
+      cta: 'Get Started Free'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=1920&q=80',
+      title: 'Master Your Time',
+      subtitle: 'Smart Scheduling',
+      cta: 'Learn More'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=1920&q=80',
+      title: 'Achieve Your Goals',
+      subtitle: 'Track Progress',
+      cta: 'Start Free'
+    }
   ];
 }

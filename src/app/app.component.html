@@ -1,3 +1,6 @@
+<!-- App Loader (shows until ready) -->
+<app-loader [isLoading]="!isAppReady()"></app-loader>
+
 <!-- Premium Animated Background -->
 <app-animated-background></app-animated-background>
 
@@ -7,7 +10,10 @@
 <!-- Command Palette -->
 <app-command-palette></app-command-palette>
 
-<!-- Premium Glassmorphic Navigation -->
+<!-- Floating Navigation (Tim Cook spec) -->
+<app-floating-nav *ngIf="showNav && isAuthenticated"></app-floating-nav>
+
+<!-- Top Navigation (keep for non-authenticated pages) -->
 <nav *ngIf="showNav && isAuthenticated" class="fixed top-0 left-0 right-0 z-50 backdrop-blur-2xl bg-white/70 dark:bg-gray-900/70 border-b border-white/20 dark:border-gray-700/20 shadow-2xl shadow-purple-500/10">
   <div class="container mx-auto px-6">
     <div class="flex justify-between items-center h-20">
@@ -101,6 +107,12 @@
 
 <!-- Premium Footer -->
 <app-premium-footer *ngIf="showNav && isAuthenticated"></app-premium-footer>
+
+<!-- Action Toggle Button (Sunrise - Tim Cook spec) -->
+<app-action-toggle-button 
+  *ngIf="showNav && isAuthenticated"
+  style="position: fixed; bottom: 2rem; right: 6rem; z-index: 1000;">
+</app-action-toggle-button>
 
 <!-- FAB with Magnetic Effect -->
 <app-fab
