@@ -44,7 +44,7 @@ interface Command {
             class="command-item"
             [class.selected]="selectedIndex() === i"
             (click)="executeCommand(command)"
-            (mouseenter)="selectedIndexSignal.set(i)">
+            (mouseenter)="setSelectedIndex(i)">
             <span class="command-icon">{{ command.icon }}</span>
             <div class="command-content">
               <div class="command-label">{{ command.label }}</div>
@@ -407,11 +407,15 @@ export class CommandPaletteComponent {
   
   selectNext() {
     const max = this.filteredCommands().length - 1;
-    this.selectedIndexSignal.update(i => Math.min(i + 1, max));
+    this.selectedIndexSignal.update((i: number) => Math.min(i + 1, max));
   }
   
   selectPrevious() {
-    this.selectedIndexSignal.update(i => Math.max(i - 1, 0));
+    this.selectedIndexSignal.update((i: number) => Math.max(i - 1, 0));
+  }
+  
+  setSelectedIndex(index: number) {
+    this.selectedIndexSignal.set(index);
   }
   
   executeCommand(command: Command) {
