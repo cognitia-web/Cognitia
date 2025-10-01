@@ -1,19 +1,5 @@
-<!-- Animated Background with Depth -->
-<div class="fixed inset-0 -z-10 overflow-hidden">
-  <!-- Gradient Mesh Background -->
-  <div class="absolute inset-0 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900 dark:to-indigo-900"></div>
-  
-  <!-- Animated Gradient Orbs -->
-  <div class="absolute top-0 -left-4 w-96 h-96 bg-purple-300 dark:bg-purple-600 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-3xl opacity-70 animate-blob"></div>
-  <div class="absolute top-0 -right-4 w-96 h-96 bg-yellow-300 dark:bg-yellow-600 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
-  <div class="absolute -bottom-8 left-20 w-96 h-96 bg-pink-300 dark:bg-pink-600 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
-  
-  <!-- Grid Pattern Overlay -->
-  <div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
-  
-  <!-- Noise Texture -->
-  <div class="absolute inset-0 bg-noise opacity-5"></div>
-</div>
+<!-- Premium Animated Background -->
+<app-animated-background></app-animated-background>
 
 <!-- Toast Notifications -->
 <app-toast-container></app-toast-container>
@@ -113,8 +99,12 @@
   <router-outlet></router-outlet>
 </main>
 
+<!-- Premium Footer -->
+<app-premium-footer *ngIf="showNav && isAuthenticated"></app-premium-footer>
+
 <!-- FAB with Magnetic Effect -->
 <app-fab
+  *ngIf="showNav && isAuthenticated"
   class="fab-magnetic"
   [actions]="fabActions"
   (actionClicked)="onFabAction($event)">

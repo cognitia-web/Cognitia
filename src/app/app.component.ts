@@ -5,6 +5,8 @@ import { ToastComponent } from './shared/components/toast/toast.component';
 import { BreadcrumbComponent } from './shared/components/breadcrumb/breadcrumb.component';
 import { FabComponent, FabAction } from './shared/components/fab/fab.component';
 import { CommandPaletteComponent } from './shared/components/command-palette/command-palette.component';
+import { AnimatedBackgroundComponent } from './shared/components/animated-background/animated-background.component';
+import { PremiumFooterComponent } from './shared/components/premium-footer/premium-footer.component';
 import { ToastService } from './shared/components/toast/toast.service';
 
 @Component({
@@ -16,7 +18,9 @@ import { ToastService } from './shared/components/toast/toast.service';
     ToastComponent,
     BreadcrumbComponent,
     FabComponent,
-    CommandPaletteComponent
+    CommandPaletteComponent,
+    AnimatedBackgroundComponent,
+    PremiumFooterComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
