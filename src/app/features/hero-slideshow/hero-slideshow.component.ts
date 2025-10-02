@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
 import { fadeIn, fadeInUp } from '../../core/animations/page.animations';
 
@@ -316,6 +317,8 @@ interface Slide {
 export class HeroSlideshowComponent implements OnInit, OnDestroy {
   private currentSlideSignal = signal(0);
   private progressSignal = signal(0);
+
+  constructor(private router: Router) {}
   
   currentSlide = this.currentSlideSignal.asReadonly();
   progress = this.progressSignal.asReadonly();
@@ -404,7 +407,6 @@ export class HeroSlideshowComponent implements OnInit, OnDestroy {
   }
   
   onCtaClick(link: string) {
-    console.log('Navigate to:', link);
-    // Implement navigation logic here
+    this.router.navigate([link]);
   }
 }

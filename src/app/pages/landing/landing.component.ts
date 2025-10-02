@@ -3,6 +3,11 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { HeroSlideshowComponent } from '../../features/hero-slideshow/hero-slideshow.component';
 import { GoalCardsComponent } from '../../features/goal-cards/goal-cards.component';
+import { FooterComponent } from '../../shared/components/footer/footer.component';
+import { AnimatedBackgroundComponent } from '../../shared/components/animated-background/animated-background.component';
+import { FloatingNavComponent } from '../../shared/components/floating-nav/floating-nav.component';
+import { MagicButtonComponent } from '../../shared/components/magic-button/magic-button.component';
+import { LoadingComponent } from '../../shared/components/loading/loading.component';
 import { fadeIn, fadeInUp, staggerFadeIn } from '../../core/animations/page.animations';
 
 interface Feature {
@@ -32,9 +37,26 @@ interface Stat {
     CommonModule,
     RouterModule,
     HeroSlideshowComponent,
-    GoalCardsComponent
+    GoalCardsComponent,
+    FooterComponent,
+    AnimatedBackgroundComponent,
+    FloatingNavComponent,
+    MagicButtonComponent,
+    LoadingComponent
   ],
   template: `
+    <!-- Loading Animation -->
+    <app-loading></app-loading>
+
+    <!-- Animated Background -->
+    <app-animated-background></app-animated-background>
+
+    <!-- Floating Navigation -->
+    <app-floating-nav></app-floating-nav>
+
+    <!-- Magic Button -->
+    <app-magic-button></app-magic-button>
+
     <div class="landing-page">
       <!-- Hero Slideshow Section -->
       <app-hero-slideshow></app-hero-slideshow>
@@ -140,6 +162,9 @@ interface Stat {
           </div>
         </div>
       </section>
+
+      <!-- Footer -->
+      <app-footer></app-footer>
     </div>
   `,
   styles: [`

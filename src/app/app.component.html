@@ -121,3 +121,7 @@
   [actions]="fabActions"
   (actionClicked)="onFabAction($event)">
 </app-fab>
+
+
+<!-- Footer for authenticated pages -->
+<app-footer *ngIf="showNav && isAuthenticated"></app-footer>
