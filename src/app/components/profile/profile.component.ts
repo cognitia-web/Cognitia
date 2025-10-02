@@ -1,8 +1,7 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { User } from '@angular/fire/auth';
-import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-profile',
@@ -11,20 +10,15 @@ import { Subscription } from 'rxjs';
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
-export class ProfileComponent implements OnInit, OnDestroy {
+export class ProfileComponent implements OnInit {
   user: User | null = null;
-  private userSubscription?: Subscription;
   
   private authService = inject(AuthService);
   
   ngOnInit(): void {
-    this.userSubscription = this.authService.user$.subscribe((user: User | null) => {
+    this.authService.user$.subscribe(user => {
       this.user = user;
     });
-  }
-  
-  ngOnDestroy(): void {
-    this.userSubscription?.unsubscribe();
   }
   
   async onLogout(): Promise<void> {
