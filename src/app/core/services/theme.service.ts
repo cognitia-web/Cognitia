@@ -1,5 +1,4 @@
-import { Injectable, signal, computed, effect } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { Injectable, signal } from '@angular/core';
 
 interface ThemeGradient {
   name: string;
@@ -12,6 +11,9 @@ interface ThemeGradient {
   providedIn: 'root'
 })
 export class ThemeService {
+  private readonly THEME_KEY = 'cognitia-theme';
+  private readonly GRADIENT_KEY = 'cognitia-gradient';
+  
   private isDarkModeSignal = signal(false);
   private currentGradientIndexSignal = signal(0);
   private isSunriseSignal = signal(false);
@@ -22,10 +24,10 @@ export class ThemeService {
   
   private gradients: ThemeGradient[] = [
     {
-      name: 'sunrise',
-      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      primary: '#667eea',
-      secondary: '#764ba2'
+      name: 'default',
+      gradient: 'linear-gradient(135deg, #6A11CB 0%, #2575FC 100%)',
+      primary: '#6A11CB',
+      secondary: '#2575FC'
     },
     {
       name: 'ocean',
@@ -44,30 +46,6 @@ export class ThemeService {
       gradient: 'linear-gradient(135deg, #0ba360 0%, #3cba92 100%)',
       primary: '#0ba360',
       secondary: '#3cba92'
-    },
-    {
-      name: 'sunset',
-      gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-      primary: '#fa709a',
-      secondary: '#fee140'
-    },
-    {
-      name: 'twilight',
-      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-      primary: '#4facfe',
-      secondary: '#00f2fe'
-    },
-    {
-      name: 'aurora',
-      gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-      primary: '#a8edea',
-      secondary: '#fed6e3'
-    },
-    {
-      name: 'cosmic',
-      gradient: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
-      primary: '#30cfd0',
-      secondary: '#330867'
     }
   ];
   
@@ -76,149 +54,86 @@ export class ThemeService {
   }
   
   private initializeTheme() {
-    const savedDarkMode = localStorage.getItem('darkMode');
-    if (savedDarkMode) {
-      this.isDarkModeSignal.set(savedDarkMode === 'true');
-      this.applyDarkMode(this.isDarkModeSignal());
+    // Load saved theme
+    const savedTheme = localStorage.getItem(this.THEME_KEY);
+    if (savedTheme === 'dark') {
+      this.isDarkModeSignal.set(true);
+      this.applyDarkMode(true);
+    }
+    
+    // Load saved gradient
+    const savedGradient = localStorage.getItem(this.GRADIENT_KEY);
+    if (savedGradient) {
+      const index = parseInt(savedGradient, 10);
+      if (!isNaN(index) && index >= 0 && index < this.gradients.length) {
+        this.currentGradientIndexSignal.set(index);
+      }
+    }
+    
+    this.applyTheme();
+  }
+  
+  private applyDarkMode(isDark: boolean) {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
     } else {
-      // Check system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      this.isDarkModeSignal.set(prefersDark);
+      document.documentElement.classList.remove('dark');
     }
   }
   
-  /**
-   * Apply theme to document
-   */
-  private applyTheme(): void {
+  private applyTheme() {
+    const gradient = this.gradients[this.currentGradientIndexSignal()];
     const root = document.documentElement;
-    const gradient = this.currentGradient();
     
-    // Apply gradient
     root.style.setProperty('--theme-gradient', gradient.gradient);
     root.style.setProperty('--theme-primary', gradient.primary);
     root.style.setProperty('--theme-secondary', gradient.secondary);
+  }
+  
+  /**
+   * Trigger sunrise background transition
+   * Spec: 1200ms smooth transition as per Tim Cook requirements
+   */
+  triggerSunrise(isSunrise: boolean) {
+    this.isSunriseSignal.set(isSunrise);
     
-    // Apply dark mode
-    if (this.isDarkMode()) {
-      root.classList.add('dark');
+    if (isSunrise) {
+      document.body.classList.add('sunrise');
+      document.documentElement.style.setProperty('--bg-impact', '1');
     } else {
-      root.classList.remove('dark');
+      document.body.classList.remove('sunrise');
+      document.documentElement.style.setProperty('--bg-impact', '0');
     }
   }
   
-  /**
-   * Cycle to next gradient (sunrise effect)
-   */
-  nextGradient(): void {
-    const nextIndex = (this.currentGradientIndex() + 1) % this.gradients.length;
-    this.currentGradientIndex.set(nextIndex);
-    localStorage.setItem(this.GRADIENT_KEY, nextIndex.toString());
+  toggleDarkMode() {
+    this.isDarkModeSignal.update(dark => !dark);
+    this.applyDarkMode(this.isDarkModeSignal());
+    localStorage.setItem(this.THEME_KEY, this.isDarkModeSignal() ? 'dark' : 'light');
+  }
+  
+  nextGradient() {
+    this.currentGradientIndexSignal.update(index => 
+      (index + 1) % this.gradients.length
+    );
     this.applyTheme();
+    localStorage.setItem(this.GRADIENT_KEY, this.currentGradientIndexSignal().toString());
   }
   
-  /**
-   * Set specific gradient by index
-   */
-  setGradient(index: number): void {
-    if (index >= 0 && index < this.gradients.length) {
-      this.currentGradientIndex.set(index);
-      localStorage.setItem(this.GRADIENT_KEY, index.toString());
-      this.applyTheme();
-    }
-  }
-  
-  /**
-   * Set specific gradient by name
-   */
-  setGradientByName(name: string): void {
+  setGradientByName(name: string) {
     const index = this.gradients.findIndex(g => g.name === name);
     if (index !== -1) {
-      this.setGradient(index);
+      this.currentGradientIndexSignal.set(index);
+      this.applyTheme();
+      localStorage.setItem(this.GRADIENT_KEY, index.toString());
     }
   }
   
-  /**
-   * Toggle dark mode
-   */
-  toggleDarkMode(): void {
-    this.isDarkModeSignal.update(current => !current);
-    const newMode = this.isDarkMode() ? 'dark' : 'light';
-    localStorage.setItem(this.THEME_KEY, newMode);
-    this.applyTheme();
+  currentGradient() {
+    return this.gradients[this.currentGradientIndexSignal()];
   }
   
-  /**
-   * Set dark mode explicitly
-   */
-  setDarkMode(enabled: boolean): void {
-    this.isDarkModeSignal.set(enabled);
-    const mode = enabled ? 'dark' : 'light';
-    localStorage.setItem(this.THEME_KEY, mode);
-    this.applyTheme();
-  }
-  
-  /**
-   * Get all available gradients
-   */
-  getGradients(): ThemeGradient[] {
-    return [...this.gradients];
-  }
-  
-  /**
-   * Get current gradient index
-   */
-  getCurrentGradientIndex(): number {
-    return this.currentGradientIndex();
-  }
-  
-  /**
-   * Animate background transition
-   * Returns a promise that resolves when animation completes
-   */
-  async animateBackgroundTransition(duration: number = 2000): Promise<void> {
-    return new Promise((resolve) => {
-      const root = document.documentElement;
-      root.style.transition = `background ${duration}ms ease`;
-      
-      setTimeout(() => {
-        root.style.transition = '';
-        resolve();
-      }, duration);
-    });
-  }
-  
-  /**
-   * Apply custom gradient
-   */
-  applyCustomGradient(gradient: string, primary: string, secondary: string): void {
-    const root = document.documentElement;
-    root.style.setProperty('--theme-gradient', gradient);
-    root.style.setProperty('--theme-primary', primary);
-    root.style.setProperty('--theme-secondary', secondary);
-  }
-  
-  /**
-   * Reset to default theme
-   */
-  resetTheme(): void {
-    this.currentGradientIndex.set(0);
-    this.isDarkModeSignal.set(false);
-    localStorage.removeItem(this.GRADIENT_KEY);
-    localStorage.removeItem(this.THEME_KEY);
-    this.applyTheme();
-  }
-  
-  /**
-   * Get theme CSS variables
-   */
-  getThemeVariables(): Record<string, string> {
-    const gradient = this.currentGradient();
-    return {
-      '--theme-gradient': gradient.gradient,
-      '--theme-primary': gradient.primary,
-      '--theme-secondary': gradient.secondary,
-      '--theme-mode': this.isDarkMode() ? 'dark' : 'light'
-    };
+  getAllGradients() {
+    return this.gradients;
   }
 }
