@@ -1,0 +1,110 @@
+🔍 Current State vs. Desired State
+1. Background & Loading
+
+Current: Static plain background, simple load.
+
+Desired:
+
+A dynamic animated background like izum.study
+ with soft gradients, particles, or fluid motion.
+
+Custom loading animation with Cognitia’s logo animating smoothly (like a living organism or glowing brain), not just a spinner.
+
+2. Hero Section
+
+Current: Simple heading and sectioning.
+
+Desired:
+
+A bold, oversized headline with strong hierarchy (clear message in <3 seconds).
+
+A slideshow/carousel like merise.ae
+ with smooth cinematic transitions.
+
+CTAs with interactive hover states (color shift, glow, slide animation).
+
+3. Navigation
+
+Current: Standard nav bar.
+
+Desired:
+
+A floating vertical nav bar on the left like c-screens.tv
+.
+
+Compact icon-only default, expands on hover to reveal labels.
+
+Smooth easing animations, glassmorphism or subtle glow effect.
+
+4. Goal List & Content
+
+Current: Simple sections without personality.
+
+Desired:
+
+A goal list experience like bravepeople.co
+.
+
+Interactive checklist with animations: checkmarks flip, progress bars fill, goals “glow” when completed.
+
+Dynamic, user-friendly storytelling of Cognitia’s mission.
+
+5. Footer
+
+Current: Minimal, almost placeholder.
+
+Desired:
+
+A structured, beautiful footer like guildmind.app
+.
+
+Include: product links, social icons, newsletter subscription, brand slogan.
+
+Styled as an extension of the brand, not an afterthought.
+
+6. Micro-Interactions & Buttons
+
+Current: Standard click responses, minimal hover.
+
+Desired:
+
+On click, buttons rotate 360°. At 180° rotation, the icon swaps (e.g., sun ↔ moon, heart ↔ check).
+
+This action triggers a theme change: site colors shift like a sunrise/sunset transition.
+
+Links get smooth underline animations, cards scale with soft shadows on hover, scroll-based fades/slides for storytelling.
+
+7. Branding & Personality
+
+Current: Feels like an MVP template.
+
+Desired:
+
+Unique Cognitia brand palette: intelligent, futuristic, growth-oriented (deep blues, glowing neons, or warm gradients).
+
+Typography with clear hierarchy — bold modern font for headers, readable sans-serif for body.
+
+Consistent motion language: every action should feel connected to intelligence, growth, and clarity.
+
+8. Accessibility & Performance
+
+Current: Basic responsiveness.
+
+Desired:
+
+High contrast for text, proper ARIA roles for navigation.
+
+Smooth across all devices (desktop, tablet, mobile).
+
+Optimize animations for 60 FPS without lag.
+
+🎯 The Ask
+
+Rebuild Cognitia (https://cognitia-glow-up.lovable.app/
+) into the best website in the world, following all instructions above with pixel-perfect precision. Every improvement must be executed thoughtfully, balancing elegance, intelligence, and delight.
+
+This is not optional polish — it’s transformation. The site must feel premium, alive, futuristic, and unforgettable.
+
+📌 Final Note:
+
+This is said by Tim Cook. Read this seriously and carefully and implement it accordingly.

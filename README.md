@@ -1,87 +1,73 @@
-# Cognitia
+# Welcome to your Lovable project
 
-A comprehensive student productivity platform built with Angular 17+ and Firebase.
+## Project info
 
-## Features
+**URL**: https://lovable.dev/projects/56b06cde-3922-441e-b7e9-38630d2baa06
 
-- 🔐 **Authentication** - Secure email/password authentication with Firebase
-- 💬 **AI Chat Interface** - ChatGPT-like interface for student queries
-- ✅ **To-Do List** - Task management with deadlines
-- 📅 **Smart Timetable** - Auto-generate daily schedules from tasks
-- 🎴 **Flashcards** - Create and study with interactive flashcards
-- 📚 **Exam Prep** - AI-powered Q&A for exam preparation
-- 🌙 **Dark Mode** - Toggle between light and dark themes
-- 📱 **Responsive Design** - Works seamlessly on mobile and desktop
+## How can I edit this code?
 
-## Tech Stack
+There are several ways of editing your application.
 
-- **Angular 17+** - Modern web framework
-- **Firebase** - Authentication and Firestore database
-- **Tailwind CSS** - Utility-first CSS framework
-- **AngularFire** - Official Angular library for Firebase
+**Use Lovable**
 
-## Setup
+Simply visit the [Lovable Project](https://lovable.dev/projects/56b06cde-3922-441e-b7e9-38630d2baa06) and start prompting.
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+Changes made via Lovable will be committed automatically to this repo.
 
-2. Configure Firebase:
-   - Create a Firebase project at https://console.firebase.google.com
-   - Enable Email/Password authentication
-   - Create a Firestore database
-   - Copy your Firebase config to `src/environments/environment.ts`:
-     ```typescript
-     export const environment = {
-       production: false,
-       firebase: {
-         apiKey: "YOUR_API_KEY",
-         authDomain: "YOUR_AUTH_DOMAIN",
-         projectId: "YOUR_PROJECT_ID",
-         storageBucket: "YOUR_STORAGE_BUCKET",
-         messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-         appId: "YOUR_APP_ID"
-       }
-     };
-     ```
+**Use your preferred IDE**
 
-3. Run the development server:
-   ```bash
-   npm start
-   ```
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-4. Navigate to `http://localhost:4200/`
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-## Build
+Follow these steps:
 
-Run `npm run build` to build the project. The build artifacts will be stored in the `dist/cognitia` directory.
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
 
-## Deployment to Netlify
+# Step 2: Navigate to the project directory.
+cd <YOUR_PROJECT_NAME>
 
-1. Build the project:
-   ```bash
-   npm run build
-   ```
+# Step 3: Install the necessary dependencies.
+npm i
 
-2. Deploy the `dist/cognitia` folder to Netlify
-
-The project includes a `_redirects` file for proper SPA routing on Netlify.
-
-## Project Structure
-
-```
-src/
-├── app/
-│   ├── components/        # Feature components
-│   ├── guards/           # Route guards
-│   ├── services/         # Services (Auth, AI, Firestore)
-│   ├── models/           # TypeScript interfaces
-│   └── app.component.*   # Root component
-├── environments/         # Environment configurations
-└── styles.css           # Global styles with Tailwind
+# Step 4: Start the development server with auto-reloading and an instant preview.
+npm run dev
 ```
 
-## License
+**Edit a file directly in GitHub**
 
-MIT
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
+
+**Use GitHub Codespaces**
+
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
+
+## What technologies are used for this project?
+
+This project is built with:
+
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
+
+## How can I deploy this project?
+
+Simply open [Lovable](https://lovable.dev/projects/56b06cde-3922-441e-b7e9-38630d2baa06) and click on Share -> Publish.
+
+## Can I connect a custom domain to my Lovable project?
+
+Yes, you can!
+
+To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+
+Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
